@@ -261,8 +261,8 @@
     bigger.addEventListener('click', ()=>{ docEl.style.fontSize = Math.min(getSize()+4, 72)+'px'; focusCaret(); });
     smaller.addEventListener('click', ()=>{ docEl.style.fontSize = Math.max(getSize()-4, 14)+'px'; focusCaret(); });
 
-    clearText.addEventListener('click', ()=>{ if(confirm('Clear all text (and inserted drawings)?')){ docEl.innerHTML=''; focusCaret(); } });
-    clearDrawing.addEventListener('click', ()=>{ if(confirm('Clear the current unsaved drawing?')){ const rect=pad.getBoundingClientRect(); ctx.clearRect(0,0, rect.width, rect.height); dirty=false; } });
+    clearText.addEventListener('click', ()=>{ docEl.innerHTML=''; focusCaret(); });
+    clearDrawing.addEventListener('click', ()=>{  const rect=pad.getBoundingClientRect(); ctx.clearRect(0,0, rect.width, rect.height); dirty=false; });
 
     toggleDraw.addEventListener('click', ()=>{
       drawActive = !drawActive;
