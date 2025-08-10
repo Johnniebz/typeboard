@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Typeboard — Type & Erase</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #ffffff;
+      color: #111;
+      -webkit-user-select: text;
+    }
+    .wrap {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .bar {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn {
+      padding: 10px 16px;
+      font-size: 18px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+    }
+    .btn-clear {
+      background: #ff3b30;
+      color: #fff;
+      font-weight: 700;
+    }
+    .btn-large {
+      background: #f2f2f7;
+      color: #111;
+    }
+    .area {
+      flex: 1;
+      padding: 8px;
+    }
+    textarea {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      border: none;
+      outline: none;
+      resize: none;
+      font-size: 28px;
+      line-height: 1.4;
+      -webkit-appearance: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-large" id="bigger" type="button">A+</button>
+        <button class="btn btn-large" id="smaller" type="button">A−</button>
+      </div>
+      <button class="btn btn-clear" id="clear" type="button">CLEAR</button>
+    </div>
+    <div class="area">
+      <textarea id="board" placeholder="Type here…"></textarea>
+    </div>
+  </div>
+  <script>
+    const board = document.getElementById('board');
+    const clearBtn = document.getElementById('clear');
+    const bigger = document.getElementById('bigger');
+    const smaller = document.getElementById('smaller');
+
+    window.addEventListener('load', () => board.focus());
+
+    clearBtn.addEventListener('click', () => {
+      board.value = '';
+      board.focus();
+    });
+
+    function getSize() {
+      const s = window.getComputedStyle(board).fontSize;
+      return parseFloat(s || '28');
+    }
+    bigger.addEventListener('click', () => {
+      board.style.fontSize = Math.min(getSize() + 4, 72) + 'px';
+      board.focus();
+    });
+    smaller.addEventListener('click', () => {
+      board.style.fontSize = Math.max(getSize() - 4, 14) + 'px';
+      board.focus();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'Backspace' || e.key === 'Delete')) {
+        e.preventDefault();
+        board.value = '';
+      }
+    });
+  </script>
+</body>
+</html>
