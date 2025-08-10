@@ -1,31 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Typeboard — Save Drawing (Cropped)</title>
+  <title>Typeboard — Texto + Dibujo</title>
   <style>
     :root { --header-bg:#fff; --border:#eaeaea; }
-    html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #ffffff; color: #111; -webkit-user-select: text; }
-    .wrap { min-height: 100svh; display: flex; flex-direction: column; }
-    .sticky { position: sticky; top: 0; z-index: 10; background: var(--header-bg); border-bottom: 1px solid var(--border); }
-    .bar { padding: 8px; display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #ffffff;
+      color: #111;
+      -webkit-user-select: text;
+    }
+    .wrap { height: 100%; display: flex; flex-direction: column; }
+    .sticky {
+      position: sticky; top: 0; z-index: 10;
+      background: var(--header-bg); border-bottom: 1px solid var(--border);
+    }
+    .bar {
+      padding: 8px; display: flex; gap: 8px; align-items: center; justify-content: space-between;
+    }
     .left, .right { display: flex; gap: 8px; align-items: center; }
-    .btn { padding: 10px 14px; font-size: 16px; font-weight: 600; border: 1px solid #ddd; border-radius: 10px; background: #f7f7fb; }
+    .btn {
+      padding: 10px 14px; font-size: 16px; font-weight: 600;
+      border: 1px solid #ddd; border-radius: 10px; background: #f7f7fb;
+    }
     .btn:active { background:#efeff4; }
     .btn-clear { background:#ff3b30; color:#fff; border-color:#ff3b30; }
     .toggle-on { background:#34c759; color:#fff; border-color:#34c759; }
-    .quickbar { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 8px; border-top: 1px solid var(--border); }
-    .chip { flex: 0 0 auto; padding: 10px 12px; border-radius: 20px; border: 1px solid #ddd; background: #fafafa; font-weight: 600; font-size: 15px; white-space: nowrap; }
+    .quickbar {
+      display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      padding: 8px; border-top: 1px solid var(--border);
+    }
+    .chip {
+      flex: 0 0 auto; padding: 10px 12px; border-radius: 20px;
+      border: 1px solid #ddd; background: #fafafa; font-weight: 600; font-size: 15px; white-space: nowrap;
+    }
     .chip:active { background:#f0f0f0; }
     .edit-phrases { margin-left: auto; padding: 8px 12px; border-radius: 10px; border: 1px solid #ddd; background: #fff; font-weight: 600; font-size: 14px; flex: 0 0 auto; }
-    .area { position: relative; flex: 1; padding: 8px; }
-    #doc { min-height: 60vh; outline: none; border: none; padding: 8px; font-size: 28px; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
-    #doc img { max-width: 100%; height: auto; display: block; margin: 4px 0; border-radius: 6px; }
-    #pad { position: absolute; left: 8px; top: 8px; right: 8px; bottom: 8px; width: calc(100% - 16px); height: calc(100% - 16px); touch-action: none; border-radius: 6px; pointer-events: none; }
+
+    .area { position: relative; flex: 1; padding: 8px; overflow: auto; }
+    #doc {
+      min-height: 100%; outline: none; border: none; padding: 8px;
+      font-size: 28px; line-height: 1.4; -webkit-user-select: text;
+    }
+    #doc img { max-width: 100%; height: auto; display: block; margin: 6px 0; border-radius: 6px; }
+
+    /* Drawing canvas sits above content but only active when drawing toggle is ON */
+    #pad {
+      position: absolute; left: 8px; top: 8px; right: 8px; bottom: 8px;
+      width: calc(100% - 16px); height: calc(100% - 16px);
+      touch-action: none; border-radius: 6px;
+      pointer-events: none;
+    }
     .drawing-active #pad { pointer-events: auto; }
+
+    /* Dialog */
     dialog::backdrop { background: rgba(0,0,0,0.35); }
     dialog { border: none; border-radius: 16px; max-width: 560px; width: calc(100% - 32px); padding: 0; overflow: hidden; }
     .dlg-head { padding: 14px 16px; font-weight: 700; border-bottom: 1px solid #eee; background: #fafafa; }
@@ -42,40 +77,41 @@
         <div class="left">
           <button class="btn" id="bigger" type="button">A+</button>
           <button class="btn" id="smaller" type="button">A−</button>
-          <button class="btn" id="toggleDraw" type="button" aria-pressed="false">Draw: Off</button>
+          <button class="btn" id="toggleDraw" type="button" aria-pressed="false">Dibujar: Off</button>
         </div>
         <div class="right">
-          <button class="btn" id="clearDrawing" type="button">Clear Drawing</button>
-          <button class="btn btn-clear" id="clearText" type="button">Clear Text</button>
+          <button class="btn" id="clearDrawing" type="button">Borrar dibujo</button>
+          <button class="btn btn-clear" id="clearText" type="button">Borrar texto</button>
         </div>
       </div>
       <div class="quickbar" id="quickbar">
         <!-- chips injected here -->
-        <button class="edit-phrases" id="editPhrases" type="button">Edit Phrases</button>
+        <button class="edit-phrases" id="editPhrases" type="button">Editar frases</button>
       </div>
     </div>
 
     <div class="area" id="area">
-      <div id="doc" contenteditable="true" spellcheck="false" aria-label="Type here…"></div>
+      <div id="doc" contenteditable="true" spellcheck="false" aria-label="Escribe aquí…"></div>
       <canvas id="pad"></canvas>
     </div>
   </div>
 
   <dialog id="dlg">
-    <div class="dlg-head">Quick Phrases</div>
+    <div class="dlg-head">Frases rápidas</div>
     <div class="dlg-body">
-      <div class="row" style="margin-bottom:8px; color:#666; font-size:13px;">Edit your most-used phrases. Saved on this device.</div>
+      <div style="margin-bottom:8px; color:#666; font-size:13px;">Edita tus frases más usadas. Se guardan en este iPad.</div>
       <div id="rows"></div>
-      <button class="btn" id="addRow" type="button">+ Add phrase</button>
+      <button class="btn" id="addRow" type="button">+ Añadir frase</button>
     </div>
     <div class="dlg-foot">
-      <button class="btn" id="reset" type="button">Reset</button>
-      <button class="btn" id="cancel" type="button">Cancel</button>
-      <button class="btn btn-clear" id="save" type="button">Save</button>
+      <button class="btn" id="reset" type="button">Restablecer</button>
+      <button class="btn" id="cancel" type="button">Cancelar</button>
+      <button class="btn btn-clear" id="save" type="button">Guardar</button>
     </div>
   </dialog>
 
   <script>
+    // Elements
     const wrap = document.getElementById('wrap');
     const area = document.getElementById('area');
     const docEl = document.getElementById('doc');
@@ -95,190 +131,263 @@
     const save = document.getElementById('save');
     const reset = document.getElementById('reset');
 
+    // Default phrases (Spanish)
     const DEFAULTS = ["Sí","No","No lo sé","Perfecto","Necesito","Lavabo","Gasas","Me pasas","Hoy","Mañana"];
 
-    function loadPhrases(){ try{ const raw=localStorage.getItem('typeboard.phrases'); const arr=raw?JSON.parse(raw):DEFAULTS.slice(); return Array.isArray(arr)&&arr.length?arr.slice(0,30):DEFAULTS.slice(); }catch(e){ return DEFAULTS.slice(); } }
-    function savePhrases(list){ localStorage.setItem('typeboard.phrases', JSON.stringify(list.filter(Boolean))); }
+    // Phrase storage
+    function loadPhrases() {
+      try {
+        const raw = localStorage.getItem('typeboard.phrases');
+        const arr = raw ? JSON.parse(raw) : DEFAULTS.slice();
+        if (!Array.isArray(arr) || arr.length === 0) return DEFAULTS.slice();
+        return arr.slice(0, 30);
+      } catch(e) { return DEFAULTS.slice(); }
+    }
+    function savePhrases(list) {
+      localStorage.setItem('typeboard.phrases', JSON.stringify(list.filter(Boolean)));
+    }
 
-    function renderChips(){
+    // Quickbar rendering
+    function renderChips() {
       const list = loadPhrases();
-      quickbar.querySelectorAll('.chip').forEach(c=>c.remove());
+      quickbar.querySelectorAll('.chip').forEach(c => c.remove());
       const edit = editBtn;
-      list.forEach((txt, idx)=>{
-        const chip=document.createElement('button');
-        chip.type='button'; chip.className='chip'; chip.textContent=txt;
-        chip.addEventListener('click',()=>{ insertTextAtCursor((needsSpace()?' ':'')+txt); focusCaret(); });
-        chip.addEventListener('dblclick',(e)=>{ e.preventDefault(); docEl.innerHTML=escapeHTML(txt); focusCaret(); });
-        let pressTimer; chip.addEventListener('touchstart',()=>{ pressTimer=setTimeout(()=>{ const newTxt=prompt('Edit phrase:',txt); if(newTxt!==null){ const list2=loadPhrases(); list2[idx]=newTxt.trim(); savePhrases(list2); renderChips(); } },550); });
-        chip.addEventListener('touchend',()=>clearTimeout(pressTimer));
-        chip.addEventListener('touchmove',()=>clearTimeout(pressTimer));
+      list.forEach((txt, idx) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = txt;
+
+        chip.addEventListener('click', () => {
+          insertTextAtCursor((needsSpace() ? ' ' : '') + txt);
+          focusDocEnd();
+        });
+        chip.addEventListener('dblclick', (e) => {
+          e.preventDefault();
+          docEl.innerHTML = escapeHTML(txt);
+          focusDocEnd();
+        });
+        // Long press to edit a single phrase
+        let pressTimer;
+        chip.addEventListener('touchstart', () => {
+          pressTimer = setTimeout(() => {
+            const newTxt = prompt('Editar frase:', txt);
+            if (newTxt !== null) {
+              const list2 = loadPhrases();
+              list2[idx] = newTxt.trim();
+              savePhrases(list2);
+              renderChips();
+            }
+          }, 550);
+        });
+        chip.addEventListener('touchend', () => clearTimeout(pressTimer));
+        chip.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
         quickbar.insertBefore(chip, edit);
       });
     }
 
-    function openEditor(){ rows.innerHTML=''; const list=loadPhrases(); list.forEach(txt=>addEditorRow(txt)); if(list.length===0) addEditorRow(''); dlg.showModal(); }
-    function addEditorRow(val=''){ const row=document.createElement('div'); row.className='row'; const input=document.createElement('input'); input.type='text'; input.placeholder='Phrase'; input.value=val; const del=document.createElement('button'); del.type='button'; del.textContent='Delete'; del.className='btn'; del.addEventListener('click',()=>row.remove()); row.appendChild(input); row.appendChild(del); rows.appendChild(row); }
-
-    let drawing=false, drawActive=false, dirty=false; let lastX=0, lastY=0, dpr=1;
-
-    function sizeCanvas(){
-      const rect=pad.getBoundingClientRect();
-      dpr=window.devicePixelRatio||1;
-      ctx.setTransform(1,0,0,1,0,0);
-      pad.width=Math.max(1, Math.floor(rect.width*dpr));
-      pad.height=Math.max(1, Math.floor(rect.height*dpr));
-      ctx.scale(dpr,dpr);
-      ctx.clearRect(0,0, rect.width, rect.height);
-      dirty=false;
+    // Dialog logic
+    function openEditor() {
+      rows.innerHTML = '';
+      const list = loadPhrases();
+      list.forEach((txt) => addEditorRow(txt));
+      if (list.length === 0) addEditorRow('');
+      dlg.showModal();
+    }
+    function addEditorRow(val='') {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Frase';
+      input.value = val;
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.textContent = 'Borrar';
+      del.className = 'btn';
+      del.addEventListener('click', () => row.remove());
+      row.appendChild(input);
+      row.appendChild(del);
+      rows.appendChild(row);
     }
 
-    function startDraw(x,y){ drawing=true; lastX=x; lastY=y; }
-    function moveDraw(x,y){
-      if(!drawing) return;
-      ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#111'; ctx.lineWidth=3;
-      ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(x,y); ctx.stroke();
-      lastX=x; lastY=y; dirty=true;
-    }
-    function endDraw(){ drawing=false; }
+    // Drawing state
+    let drawing = false, drawActive = false, dirty = false;
+    let lastX = 0, lastY = 0, dpr = 1;
 
-    function getPoint(e){
-      const rect=pad.getBoundingClientRect();
-      if(e.touches&&e.touches.length){ const t=e.touches[0]; return {x:t.clientX-rect.left, y:t.clientY-rect.top}; }
-      return {x:e.clientX-rect.left, y:e.clientY-rect.top};
-    }
-
-    // Find top & bottom rows that contain non-transparent pixels (alpha > 0)
-    function getVerticalContentBounds(){
-      const w = pad.width, h = pad.height;
-      if(!dirty || w===0 || h===0) return null;
-      try{
-        const img = ctx.getImageData(0,0,w,h).data;
-        let top = 0, bottom = h-1, foundTop=false, foundBottom=false;
-        // find top
-        for(let y=0; y<h; y++){
-          const rowStart = y*w*4;
-          for(let x=0; x<w; x++){
-            if(img[rowStart + x*4 + 3] !== 0){ top = y; foundTop = true; break; }
-          }
-          if(foundTop) break;
-        }
-        // if nothing drawn
-        if(!foundTop) return null;
-        // find bottom
-        for(let y=h-1; y>=0; y--){
-          const rowStart = y*w*4;
-          for(let x=0; x<w; x++){
-            if(img[rowStart + x*4 + 3] !== 0){ bottom = y; foundBottom = true; break; }
-          }
-          if(foundBottom) break;
-        }
-        return { top, bottom };
-      }catch(e){
-        return null;
-      }
-    }
-
-    // Insert a CROPPED version of the canvas (tight to content vertically)
-    function insertCanvasIntoDoc(){
-      if(!dirty) return;
-      const bounds = getVerticalContentBounds();
-      const w = pad.width, h = pad.height;
-      let sy = 0, sh = h;
-      const cssDpr = window.devicePixelRatio||1;
-      const marginPx = Math.round(cssDpr*2); // small extra breathing space (2 CSS px)
-      if(bounds){
-        sy = Math.max(0, bounds.top - marginPx);
-        const bottom = Math.min(h-1, bounds.bottom + marginPx);
-        sh = Math.max(1, bottom - sy + 1);
-      }
-      // Create an offscreen canvas and copy the slice
-      const off = document.createElement('canvas');
-      off.width = w;
-      off.height = sh;
-      const offCtx = off.getContext('2d');
-      offCtx.drawImage(pad, 0, sy, w, sh, 0, 0, w, sh);
-
-      // Convert to dataURL and insert
-      const dataURL = off.toDataURL('image/png');
-      const img = new Image();
-      img.src = dataURL; img.alt='Drawing'; img.style.maxWidth='100%'; img.style.display='block'; img.style.margin='4px 0';
-      insertNodeAtCursor(img);
-      const zwsp = document.createTextNode('\u200B');
-      insertNodeAtCursor(zwsp);
-      focusCaret();
-
-      // Clear original canvas
+    function sizeCanvas() {
       const rect = pad.getBoundingClientRect();
+      dpr = window.devicePixelRatio || 1;
+      ctx.setTransform(1,0,0,1,0,0);
+      pad.width = Math.max(1, Math.floor(rect.width * dpr));
+      pad.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.scale(dpr, dpr);
       ctx.clearRect(0,0, rect.width, rect.height);
-      dirty=false;
+      dirty = false;
     }
 
-    function needsSpace(){ const n=docEl.textContent||''; return n.length>0 && !/\s$/.test(n); }
-    function insertTextAtCursor(text){
-      const sel=window.getSelection(); if(!sel.rangeCount){ docEl.appendChild(document.createTextNode(text)); return; }
-      const range=sel.getRangeAt(0); range.deleteContents(); range.insertNode(document.createTextNode(text)); range.collapse(false); sel.removeAllRanges(); sel.addRange(range);
+    function startDraw(x, y) { drawing = true; lastX = x; lastY = y; }
+    function moveDraw(x, y) {
+      if (!drawing) return;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
+      lastX = x; lastY = y; dirty = true;
     }
-    function insertNodeAtCursor(node){
-      const sel=window.getSelection(); if(!sel.rangeCount){ docEl.appendChild(node); return; }
-      const range=sel.getRangeAt(0); range.collapse(true); range.insertNode(node); range.setStartAfter(node); range.setEndAfter(node); sel.removeAllRanges(); sel.addRange(range);
+    function endDraw() { drawing = false; }
+
+    function getPoint(e) {
+      const rect = pad.getBoundingClientRect();
+      if (e.touches && e.touches.length) {
+        const t = e.touches[0];
+        return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+      } else {
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
     }
-    function focusCaret(){
+
+    // Insert current canvas as image into the document
+    function insertCanvasIntoDoc() {
+      if (!dirty) return; // nothing to save
+      const rect = pad.getBoundingClientRect();
+      const dataURL = pad.toDataURL('image/png');
+      const img = new Image();
+      img.src = dataURL;
+      img.alt = 'Dibujo';
+      img.style.maxWidth = '100%';
+      img.style.display = 'block';
+      insertNodeAtCursor(img);
+      // Add a line break after image so user can continue underneath
+      insertNodeAtCursor(document.createElement('br'));
+      // Clear the canvas for next drawing
+      ctx.clearRect(0,0, rect.width, rect.height);
+      dirty = false;
+    }
+
+    // Helpers for contenteditable insertions
+    function needsSpace() {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return !!docEl.textContent;
+      const n = docEl.textContent || '';
+      return n.length > 0 && !/\s$/.test(n);
+    }
+    function insertTextAtCursor(text) {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) {
+        docEl.appendChild(document.createTextNode(text));
+        return;
+      }
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(document.createTextNode(text));
+      range.collapse(false);
+      sel.removeAllRanges(); sel.addRange(range);
+    }
+    function insertNodeAtCursor(node) {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) { docEl.appendChild(node); return; }
+      const range = sel.getRangeAt(0);
+      range.collapse(true);
+      range.insertNode(node);
+      // Move caret after node
+      range.setStartAfter(node);
+      range.setEndAfter(node);
+      sel.removeAllRanges(); sel.addRange(range);
+    }
+    function focusDocEnd() {
       docEl.focus();
-      const sel=window.getSelection();
-      if(!sel.rangeCount){ const r=document.createRange(); r.selectNodeContents(docEl); r.collapse(false); sel.removeAllRanges(); sel.addRange(r); }
-      scrollCaretIntoView();
+      const range = document.createRange();
+      range.selectNodeContents(docEl);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges(); sel.addRange(range);
     }
-    function escapeHTML(str){ return str.replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
-
-    function scrollCaretIntoView(){
-      const sel=window.getSelection(); if(!sel.rangeCount) return;
-      const rect=sel.getRangeAt(0).getBoundingClientRect();
-      if(!rect || (rect.width===0 && rect.height===0)) return;
-      const padding=40; const winH=window.innerHeight||document.documentElement.clientHeight;
-      if(rect.top < padding){ window.scrollBy({top: rect.top - padding, behavior:'smooth'}); }
-      else if(rect.bottom > winH - padding){ window.scrollBy({top: rect.bottom - (winH - padding), behavior:'smooth'}); }
+    function escapeHTML(str) {
+      return str.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     }
 
-    window.addEventListener('load', ()=>{ renderChips(); sizeCanvas(); focusCaret(); });
-    window.addEventListener('resize', ()=>{ sizeCanvas(); scrollCaretIntoView(); });
+    // Events
+    window.addEventListener('load', () => {
+      renderChips();
+      sizeCanvas();
+      focusDocEnd();
+    });
+    window.addEventListener('resize', sizeCanvas);
 
-    pad.addEventListener('touchstart', e=>{ if(!drawActive) return; e.preventDefault(); const p=getPoint(e); startDraw(p.x,p.y); });
-    pad.addEventListener('touchmove', e=>{ if(!drawActive) return; e.preventDefault(); const p=getPoint(e); moveDraw(p.x,p.y); });
-    pad.addEventListener('touchend', e=>{ if(!drawActive) return; e.preventDefault(); endDraw(); });
+    // Drawing events
+    pad.addEventListener('touchstart', (e) => { if(!drawActive) return; e.preventDefault(); const p = getPoint(e); startDraw(p.x, p.y); });
+    pad.addEventListener('touchmove', (e) => { if(!drawActive) return; e.preventDefault(); const p = getPoint(e); moveDraw(p.x, p.y); });
+    pad.addEventListener('touchend', (e) => { if(!drawActive) return; e.preventDefault(); endDraw(); });
 
-    pad.addEventListener('mousedown', e=>{ if(!drawActive) return; const p=getPoint(e); startDraw(p.x,p.y); });
-    pad.addEventListener('mousemove', e=>{ if(!drawActive) return; const p=getPoint(e); moveDraw(p.x,p.y); });
+    pad.addEventListener('mousedown', (e) => { if(!drawActive) return; const p = getPoint(e); startDraw(p.x, p.y); });
+    pad.addEventListener('mousemove', (e) => { if(!drawActive) return; const p = getPoint(e); moveDraw(p.x, p.y); });
     pad.addEventListener('mouseup', endDraw);
     pad.addEventListener('mouseleave', endDraw);
 
+    // Controls
     editBtn.addEventListener('click', openEditor);
-    addRow.addEventListener('click', ()=>addEditorRow(''));
-    cancel.addEventListener('click', ()=>dlg.close());
-    reset.addEventListener('click', ()=>{ if(confirm('Reset phrases to defaults?')){ savePhrases(DEFAULTS.slice()); renderChips(); dlg.close(); } });
-    save.addEventListener('click', ()=>{ const inputs=[...rows.querySelectorAll('input[type="text"]')]; const list=inputs.map(i=>i.value.trim()).filter(Boolean); savePhrases(list); renderChips(); dlg.close(); });
+    addRow.addEventListener('click', () => addEditorRow(''));
+    cancel.addEventListener('click', () => dlg.close());
+    reset.addEventListener('click', () => {
+      if (confirm('¿Restablecer frases por defecto?')) {
+        savePhrases(DEFAULTS.slice());
+        renderChips();
+        dlg.close();
+      }
+    });
+    save.addEventListener('click', () => {
+      const inputs = Array.from(rows.querySelectorAll('input[type="text"]'));
+      const list = inputs.map(i => i.value.trim()).filter(Boolean);
+      savePhrases(list);
+      renderChips();
+      dlg.close();
+    });
 
-    function getSize(){ const s=window.getComputedStyle(docEl).fontSize; return parseFloat(s||'28'); }
-    bigger.addEventListener('click', ()=>{ docEl.style.fontSize = Math.min(getSize()+4, 72)+'px'; focusCaret(); });
-    smaller.addEventListener('click', ()=>{ docEl.style.fontSize = Math.max(getSize()-4, 14)+'px'; focusCaret(); });
+    function getSize() {
+      const s = window.getComputedStyle(docEl).fontSize;
+      return parseFloat(s || '28');
+    }
+    bigger.addEventListener('click', () => { docEl.style.fontSize = Math.min(getSize() + 4, 72) + 'px'; docEl.focus(); });
+    smaller.addEventListener('click', () => { docEl.style.fontSize = Math.max(getSize() - 4, 14) + 'px'; docEl.focus(); });
 
-    clearText.addEventListener('click', ()=>{ docEl.innerHTML=''; focusCaret(); });
-    clearDrawing.addEventListener('click', ()=>{  const rect=pad.getBoundingClientRect(); ctx.clearRect(0,0, rect.width, rect.height); dirty=false; });
-
-    toggleDraw.addEventListener('click', ()=>{
-      drawActive = !drawActive;
-      if(drawActive){
-        toggleDraw.textContent='Draw: On'; toggleDraw.classList.add('toggle-on'); wrap.classList.add('drawing-active'); docEl.blur();
-      }else{
-        insertCanvasIntoDoc(); // save the CROPPED drawing inline
-        toggleDraw.textContent='Draw: Off'; toggleDraw.classList.remove('toggle-on'); wrap.classList.remove('drawing-active'); focusCaret();
+    clearText.addEventListener('click', () => {
+      if (confirm('¿Borrar todo el texto? (Los dibujos insertados también se eliminarán)')) {
+        docEl.innerHTML = '';
+        focusDocEnd();
+      }
+    });
+    clearDrawing.addEventListener('click', () => {
+      if (confirm('¿Borrar el dibujo actual?')) {
+        const rect = pad.getBoundingClientRect();
+        ctx.clearRect(0,0, rect.width, rect.height);
+        dirty = false;
       }
     });
 
-    docEl.addEventListener('input', scrollCaretIntoView);
-    docEl.addEventListener('keyup', scrollCaretIntoView);
+    toggleDraw.addEventListener('click', () => {
+      drawActive = !drawActive;
+      if (drawActive) {
+        toggleDraw.textContent = 'Dibujar: On';
+        toggleDraw.classList.add('toggle-on');
+        wrap.classList.add('drawing-active');
+        docEl.blur();
+      } else {
+        // SAVE the drawing into the document as an image before turning off
+        insertCanvasIntoDoc();
+        toggleDraw.textContent = 'Dibujar: Off';
+        toggleDraw.classList.remove('toggle-on');
+        wrap.classList.remove('drawing-active');
+        focusDocEnd();
+      }
+    });
 
-    document.addEventListener('keydown', (e)=>{
-      if((e.metaKey||e.ctrlKey) && (e.key==='Backspace' || e.key==='Delete')){ e.preventDefault(); docEl.innerHTML=''; focusCaret(); }
+    // Keyboard shortcut: Cmd/Ctrl + Backspace to clear text
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'Backspace' || e.key === 'Delete')) {
+        e.preventDefault();
+        docEl.innerHTML = '';
+        focusDocEnd();
+      }
     });
   </script>
 </body>
