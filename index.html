@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Typeboard — Quick Phrases</title>
+  <title>Typeboard — Sticky + Draw</title>
   <style>
-    :root { --pad: 10px; }
+    :root { --header-bg:#fff; --border:#eaeaea; --pad:10px; }
     html, body {
       height: 100%;
       margin: 0;
@@ -15,45 +15,47 @@
       font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       background: #ffffff;
       color: #111;
+      -webkit-user-select: text;
     }
     .wrap {
       height: 100%;
       display: flex;
       flex-direction: column;
     }
+    /* Sticky header that contains controls + quick phrases */
+    .sticky {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border);
+    }
     .bar {
       padding: 8px;
-      border-bottom: 1px solid #eee;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
       gap: 8px;
+      align-items: center;
+      justify-content: space-between;
     }
+    .left, .right { display: flex; gap: 8px; align-items: center; }
     .btn {
       padding: 10px 14px;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
-      border: none;
+      border: 1px solid #ddd;
       border-radius: 10px;
-      cursor: pointer;
-      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      background: #f7f7fb;
     }
-    .btn-clear {
-      background: #ff3b30;
-      color: #fff;
-      font-weight: 700;
-    }
-    .btn-large {
-      background: #f2f2f7;
-      color: #111;
-    }
+    .btn:active { background:#efeff4; }
+    .btn-clear { background:#ff3b30; color:#fff; border-color:#ff3b30; }
+    .toggle-on { background:#34c759; color:#fff; border-color:#34c759; }
     .quickbar {
       display: flex;
       gap: 8px;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       padding: 8px;
-      border-bottom: 1px solid #f1f1f1;
+      border-top: 1px solid var(--border);
     }
     .chip {
       flex: 0 0 auto;
@@ -62,10 +64,11 @@
       border: 1px solid #ddd;
       background: #fafafa;
       font-weight: 600;
-      font-size: 16px;
+      font-size: 15px;
       user-select: none;
+      white-space: nowrap;
     }
-    .chip:active { background: #f0f0f0; }
+    .chip:active { background:#f0f0f0; }
     .edit-phrases {
       margin-left: auto;
       padding: 8px 12px;
@@ -74,8 +77,12 @@
       background: #fff;
       font-weight: 600;
       font-size: 14px;
+      flex: 0 0 auto;
     }
+
+    /* Content area */
     .area {
+      position: relative;
       flex: 1;
       padding: 8px;
     }
@@ -90,7 +97,19 @@
       line-height: 1.4;
       -webkit-appearance: none;
     }
-    /* Dialog */
+    /* Canvas sits on top, only captures touches when drawing is ON */
+    #pad {
+      position: absolute;
+      inset: 8px;
+      width: calc(100% - 16px);
+      height: calc(100% - 16px);
+      touch-action: none; /* better drawing on touch */
+      border-radius: 6px;
+      pointer-events: none; /* disabled by default */
+    }
+    .drawing-active #pad { pointer-events: auto; }
+
+    /* Dialog styles */
     dialog::backdrop { background: rgba(0,0,0,0.35); }
     dialog {
       border: none;
@@ -128,56 +147,61 @@
       justify-content: flex-end;
       background: #fafafa;
     }
-    .btn-sec {
-      background: #f2f2f7;
-      color: #111;
-    }
-    .note {
-      font-size: 13px;
-      color: #666;
-      margin-bottom: 10px;
-    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="bar">
-      <div style="display:flex; gap:8px;">
-        <button class="btn btn-large" id="bigger" type="button">A+</button>
-        <button class="btn btn-large" id="smaller" type="button">A−</button>
+  <div class="wrap" id="wrap">
+    <div class="sticky">
+      <div class="bar">
+        <div class="left">
+          <button class="btn" id="bigger" type="button">A+</button>
+          <button class="btn" id="smaller" type="button">A−</button>
+          <button class="btn" id="toggleDraw" type="button" aria-pressed="false">Draw: Off</button>
+        </div>
+        <div class="right">
+          <button class="btn" id="clearDrawing" type="button">Clear Drawing</button>
+          <button class="btn btn-clear" id="clearText" type="button">Clear Text</button>
+        </div>
       </div>
-      <button class="btn btn-clear" id="clear" type="button">CLEAR</button>
-    </div>
-
-    <div class="quickbar" id="quickbar">
-      <!-- chips injected here -->
-      <button class="edit-phrases" id="editPhrases" type="button">Edit Phrases</button>
+      <div class="quickbar" id="quickbar">
+        <!-- chips injected here -->
+        <button class="edit-phrases" id="editPhrases" type="button">Edit Phrases</button>
+      </div>
     </div>
 
     <div class="area">
       <textarea id="board" placeholder="Type here…"></textarea>
+      <canvas id="pad"></canvas>
     </div>
   </div>
 
   <dialog id="dlg">
     <div class="dlg-head">Quick Phrases</div>
     <div class="dlg-body">
-      <div class="note">Tap to edit your most-used phrases. They’ll be saved on this device.</div>
+      <div class="row" style="margin-bottom:8px; color:#666; font-size:13px;">
+        Edit your most-used phrases. Saved on this device.
+      </div>
       <div id="rows"></div>
-      <button class="btn btn-sec" id="addRow" type="button">+ Add phrase</button>
+      <button class="btn" id="addRow" type="button">+ Add phrase</button>
     </div>
     <div class="dlg-foot">
-      <button class="btn btn-sec" id="reset" type="button">Reset</button>
-      <button class="btn btn-sec" id="cancel" type="button">Cancel</button>
+      <button class="btn" id="reset" type="button">Reset</button>
+      <button class="btn" id="cancel" type="button">Cancel</button>
       <button class="btn btn-clear" id="save" type="button">Save</button>
     </div>
   </dialog>
 
   <script>
+    // --- Elements
+    const wrap = document.getElementById('wrap');
     const board = document.getElementById('board');
-    const clearBtn = document.getElementById('clear');
+    const pad = document.getElementById('pad');
+    const ctx = pad.getContext('2d');
     const bigger = document.getElementById('bigger');
     const smaller = document.getElementById('smaller');
+    const toggleDraw = document.getElementById('toggleDraw');
+    const clearDrawing = document.getElementById('clearDrawing');
+    const clearText = document.getElementById('clearText');
     const quickbar = document.getElementById('quickbar');
     const editBtn = document.getElementById('editPhrases');
     const dlg = document.getElementById('dlg');
@@ -187,29 +211,24 @@
     const save = document.getElementById('save');
     const reset = document.getElementById('reset');
 
+    // --- Quick phrases
     const DEFAULTS = [
       "Sí","No","Quizás", "Perfecto", "No lo sé", "Necesito", "Lavabo", "Gasas", "Me pasas", "Hoy", "Mañana"
     ];
-
     function loadPhrases() {
       try {
         const raw = localStorage.getItem('typeboard.phrases');
         const arr = raw ? JSON.parse(raw) : DEFAULTS.slice();
         if (!Array.isArray(arr) || arr.length === 0) return DEFAULTS.slice();
-        return arr.slice(0, 20); // cap at 20
-      } catch(e) {
-        return DEFAULTS.slice();
-      }
+        return arr.slice(0, 30);
+      } catch(e) { return DEFAULTS.slice(); }
     }
     function savePhrases(list) {
       localStorage.setItem('typeboard.phrases', JSON.stringify(list.filter(Boolean)));
     }
-
     function renderChips() {
       const list = loadPhrases();
-      // Remove old chips except the edit button
       quickbar.querySelectorAll('.chip').forEach(c => c.remove());
-      // Insert chips before the edit button
       const edit = editBtn;
       list.forEach((txt, idx) => {
         const chip = document.createElement('button');
@@ -217,23 +236,18 @@
         chip.className = 'chip';
         chip.textContent = txt;
 
-        // Single tap: append with space
         chip.addEventListener('click', () => {
           const needsSpace = board.value && !board.value.endsWith(' ');
           board.value = (board.value || '') + (needsSpace ? ' ' : '') + txt;
           board.focus();
-          // move cursor to end
           board.selectionStart = board.selectionEnd = board.value.length;
         });
-
-        // Double-tap: replace entire text
         chip.addEventListener('dblclick', (e) => {
           e.preventDefault();
           board.value = txt;
           board.focus();
         });
-
-        // Long-press to edit that single chip
+        // Long-press to edit a single phrase
         let pressTimer;
         chip.addEventListener('touchstart', () => {
           pressTimer = setTimeout(() => {
@@ -252,15 +266,13 @@
         quickbar.insertBefore(chip, edit);
       });
     }
-
     function openEditor() {
       rows.innerHTML = '';
       const list = loadPhrases();
-      list.forEach((txt, i) => addEditorRow(txt));
+      list.forEach((txt) => addEditorRow(txt));
       if (list.length === 0) addEditorRow('');
       dlg.showModal();
     }
-
     function addEditorRow(val='') {
       const row = document.createElement('div');
       row.className = 'row';
@@ -271,24 +283,95 @@
       const del = document.createElement('button');
       del.type = 'button';
       del.textContent = 'Delete';
-      del.className = 'btn btn-sec';
+      del.className = 'btn';
       del.addEventListener('click', () => row.remove());
       row.appendChild(input);
       row.appendChild(del);
       rows.appendChild(row);
     }
 
-    // Events
+    // --- Drawing
+    let drawing = false;
+    let drawActive = false;
+    let lastX = 0, lastY = 0, dpr = 1;
+
+    function sizeCanvas() {
+      const rect = pad.getBoundingClientRect();
+      dpr = window.devicePixelRatio || 1;
+      // Reset transform before resizing to avoid compounded scales
+      ctx.setTransform(1,0,0,1,0,0);
+      pad.width = Math.max(1, Math.floor(rect.width * dpr));
+      pad.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0,0, rect.width, rect.height);
+    }
+
+    function startDraw(x, y) {
+      drawing = true;
+      lastX = x; lastY = y;
+    }
+    function moveDraw(x, y) {
+      if (!drawing) return;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      lastX = x; lastY = y;
+    }
+    function endDraw() { drawing = false; }
+
+    function getPoint(e) {
+      if (e.touches && e.touches.length) {
+        const t = e.touches[0];
+        const rect = pad.getBoundingClientRect();
+        return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+      } else {
+        const rect = pad.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+    }
+
+    window.addEventListener('resize', sizeCanvas);
+
+    pad.addEventListener('touchstart', (e) => { if(!drawActive) return; e.preventDefault(); const p = getPoint(e); startDraw(p.x, p.y); });
+    pad.addEventListener('touchmove', (e) => { if(!drawActive) return; e.preventDefault(); const p = getPoint(e); moveDraw(p.x, p.y); });
+    pad.addEventListener('touchend', (e) => { if(!drawActive) return; e.preventDefault(); endDraw(); });
+
+    pad.addEventListener('mousedown', (e) => { if(!drawActive) return; const p = getPoint(e); startDraw(p.x, p.y); });
+    pad.addEventListener('mousemove', (e) => { if(!drawActive) return; const p = getPoint(e); moveDraw(p.x, p.y); });
+    pad.addEventListener('mouseup', endDraw);
+    pad.addEventListener('mouseleave', endDraw);
+
+    // --- Events & Controls
     window.addEventListener('load', () => {
       renderChips();
+      sizeCanvas();
       board.focus();
     });
 
-    clearBtn.addEventListener('click', () => {
-      board.value = '';
-      board.focus();
+    editBtn.addEventListener('click', openEditor);
+    addRow.addEventListener('click', () => addEditorRow(''));
+    cancel.addEventListener('click', () => dlg.close());
+    reset.addEventListener('click', () => {
+      if (confirm('Reset phrases to defaults?')) {
+        savePhrases(DEFAULTS.slice());
+        renderChips();
+        dlg.close();
+      }
+    });
+    save.addEventListener('click', () => {
+      const inputs = Array.from(rows.querySelectorAll('input[type="text"]'));
+      const list = inputs.map(i => i.value.trim()).filter(Boolean);
+      savePhrases(list);
+      renderChips();
+      dlg.close();
     });
 
+    // Font size
     function getSize() {
       const s = window.getComputedStyle(board).fontSize;
       return parseFloat(s || '28');
@@ -302,27 +385,31 @@
       board.focus();
     });
 
-    editBtn.addEventListener('click', openEditor);
-    addRow.addEventListener('click', () => addEditorRow(''));
-    cancel.addEventListener('click', () => dlg.close());
-
-    reset.addEventListener('click', () => {
-      if (confirm('Reset phrases to defaults?')) {
-        savePhrases(DEFAULTS.slice());
-        renderChips();
-        dlg.close();
+    // Clear buttons
+    clearText.addEventListener('click', () => {
+      if (confirm('Clear all typed text?')) {
+        board.value='';
+        board.focus();
+      }
+    });
+    clearDrawing.addEventListener('click', () => {
+      if (confirm('Clear all drawing?')) {
+        const rect = pad.getBoundingClientRect();
+        ctx.clearRect(0,0, rect.width, rect.height);
       }
     });
 
-    save.addEventListener('click', () => {
-      const inputs = Array.from(rows.querySelectorAll('input[type="text"]'));
-      const list = inputs.map(i => i.value.trim()).filter(Boolean);
-      savePhrases(list);
-      renderChips();
-      dlg.close();
+    // Draw toggle
+    toggleDraw.addEventListener('click', () => {
+      drawActive = !drawActive;
+      toggleDraw.textContent = drawActive ? 'Draw: On' : 'Draw: Off';
+      toggleDraw.classList.toggle('toggle-on', drawActive);
+      wrap.classList.toggle('drawing-active', drawActive);
+      if (drawActive) board.blur(); else board.focus();
+      sizeCanvas();
     });
 
-    // Keyboard shortcut: Cmd/Ctrl + Backspace to clear
+    // Keyboard shortcut: Cmd/Ctrl + Backspace to clear text
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'Backspace' || e.key === 'Delete')) {
         e.preventDefault();
