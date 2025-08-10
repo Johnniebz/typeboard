@@ -16,14 +16,30 @@
       background: #ffffff;
       color: #111;
     }
-    .wrap {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
+.wrap {
+  height: 100svh;       /* force full screen height */
+  display: flex;
+  flex-direction: column;
+}
+
+.area {
+  flex: 1;              /* fill all remaining height under header */
+  overflow-y: auto;     /* scroll inside here */
+  padding: 8px;
+  position: relative;
+}
+
+    /* Sticky header (bar + quickbar) */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #fff;
+      border-bottom: 1px solid #eee;
     }
+
     .bar {
       padding: 8px;
-      border-bottom: 1px solid #eee;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -47,13 +63,16 @@
       background: #f2f2f7;
       color: #111;
     }
+
     .quickbar {
       display: flex;
       gap: 8px;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       padding: 8px;
+      border-top: 1px solid #f6f6f6;
       border-bottom: 1px solid #f1f1f1;
+      background: #fff;
     }
     .chip {
       flex: 0 0 auto;
@@ -75,9 +94,11 @@
       font-weight: 600;
       font-size: 14px;
     }
+
     .area {
       flex: 1;
       padding: 8px;
+      position: relative;
     }
     textarea {
       width: 100%;
@@ -90,6 +111,7 @@
       line-height: 1.4;
       -webkit-appearance: none;
     }
+
     /* Dialog */
     dialog::backdrop { background: rgba(0,0,0,0.35); }
     dialog {
@@ -137,24 +159,48 @@
       color: #666;
       margin-bottom: 10px;
     }
+
+    /* Drawing overlay + saved images */
+    #pad {
+      position: absolute;
+      inset: 8px;
+      width: calc(100% - 16px);
+      height: calc(100% - 16px);
+      touch-action: none;
+      border-radius: 6px;
+      pointer-events: none;
+    }
+    .drawing-active #pad { pointer-events: auto; }
+    #drawings img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 4px 0;
+      border-radius: 6px;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="bar">
-      <div style="display:flex; gap:8px;">
-        <button class="btn btn-large" id="bigger" type="button">A+</button>
-        <button class="btn btn-large" id="smaller" type="button">A−</button>
+    <div class="header">
+      <div class="bar">
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-large" id="bigger" type="button">A+</button>
+          <button class="btn btn-large" id="smaller" type="button">A−</button>
+          <button class="btn btn-large" id="toggleDraw" type="button" aria-pressed="false">Draw: Off</button>
+        </div>
+        <button class="btn btn-clear" id="clear" type="button">CLEAR</button>
       </div>
-      <button class="btn btn-clear" id="clear" type="button">CLEAR</button>
-    </div>
 
-    <div class="quickbar" id="quickbar">
-      <!-- chips injected here -->
-      <button class="edit-phrases" id="editPhrases" type="button">Edit Phrases</button>
+      <div class="quickbar" id="quickbar">
+        <!-- chips injected here -->
+        <button class="edit-phrases" id="editPhrases" type="button">Edit Phrases</button>
+      </div>
     </div>
 
     <div class="area">
+      <div id="drawings"></div>
+      <canvas id="pad"></canvas>
       <textarea id="board" placeholder="Type here…"></textarea>
     </div>
   </div>
@@ -188,7 +234,7 @@
     const reset = document.getElementById('reset');
 
     const DEFAULTS = [
-      "Sí","No","Quizás", "Perfecto", "No lo sé", "Necesito", "Lavabo", "Gasas", "Me pasas", "Hoy", "Mañana"
+      "Sí","No","No lo sé", "Perfecto", "Necesito", "Lavabo", "Gasas", "Me pasas", "Hoy", "Mañana"
     ];
 
     function loadPhrases() {
@@ -196,7 +242,7 @@
         const raw = localStorage.getItem('typeboard.phrases');
         const arr = raw ? JSON.parse(raw) : DEFAULTS.slice();
         if (!Array.isArray(arr) || arr.length === 0) return DEFAULTS.slice();
-        return arr.slice(0, 20); // cap at 20
+        return arr.slice(0, 20);
       } catch(e) {
         return DEFAULTS.slice();
       }
@@ -207,33 +253,24 @@
 
     function renderChips() {
       const list = loadPhrases();
-      // Remove old chips except the edit button
       quickbar.querySelectorAll('.chip').forEach(c => c.remove());
-      // Insert chips before the edit button
       const edit = editBtn;
       list.forEach((txt, idx) => {
         const chip = document.createElement('button');
         chip.type = 'button';
         chip.className = 'chip';
         chip.textContent = txt;
-
-        // Single tap: append with space
         chip.addEventListener('click', () => {
           const needsSpace = board.value && !board.value.endsWith(' ');
           board.value = (board.value || '') + (needsSpace ? ' ' : '') + txt;
           board.focus();
-          // move cursor to end
           board.selectionStart = board.selectionEnd = board.value.length;
         });
-
-        // Double-tap: replace entire text
         chip.addEventListener('dblclick', (e) => {
           e.preventDefault();
           board.value = txt;
           board.focus();
         });
-
-        // Long-press to edit that single chip
         let pressTimer;
         chip.addEventListener('touchstart', () => {
           pressTimer = setTimeout(() => {
@@ -248,7 +285,6 @@
         });
         chip.addEventListener('touchend', () => clearTimeout(pressTimer));
         chip.addEventListener('touchmove', () => clearTimeout(pressTimer));
-
         quickbar.insertBefore(chip, edit);
       });
     }
@@ -256,7 +292,7 @@
     function openEditor() {
       rows.innerHTML = '';
       const list = loadPhrases();
-      list.forEach((txt, i) => addEditorRow(txt));
+      list.forEach((txt) => addEditorRow(txt));
       if (list.length === 0) addEditorRow('');
       dlg.showModal();
     }
@@ -278,14 +314,19 @@
       rows.appendChild(row);
     }
 
-    // Events
     window.addEventListener('load', () => {
       renderChips();
       board.focus();
+      sizeCanvas();
     });
 
+    // CLEAR now wipes text, saved drawings, and any unsaved sketch
     clearBtn.addEventListener('click', () => {
       board.value = '';
+      drawings.innerHTML = '';
+      const rect = pad.getBoundingClientRect();
+      ctx.clearRect(0,0, rect.width, rect.height);
+      dirty = false;
       board.focus();
     });
 
@@ -305,7 +346,6 @@
     editBtn.addEventListener('click', openEditor);
     addRow.addEventListener('click', () => addEditorRow(''));
     cancel.addEventListener('click', () => dlg.close());
-
     reset.addEventListener('click', () => {
       if (confirm('Reset phrases to defaults?')) {
         savePhrases(DEFAULTS.slice());
@@ -313,7 +353,6 @@
         dlg.close();
       }
     });
-
     save.addEventListener('click', () => {
       const inputs = Array.from(rows.querySelectorAll('input[type="text"]'));
       const list = inputs.map(i => i.value.trim()).filter(Boolean);
@@ -322,13 +361,131 @@
       dlg.close();
     });
 
-    // Keyboard shortcut: Cmd/Ctrl + Backspace to clear
+    // Keyboard shortcut: Cmd/Ctrl + Backspace to clear EVERYTHING
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'Backspace' || e.key === 'Delete')) {
         e.preventDefault();
         board.value = '';
+        drawings.innerHTML = '';
+        const rect = pad.getBoundingClientRect();
+        ctx.clearRect(0,0, rect.width, rect.height);
+        dirty = false;
       }
     });
+
+    // ===== Drawing logic (unchanged UX, now works with sticky header + clear-all) =====
+    const drawings = document.getElementById('drawings');
+    const pad = document.getElementById('pad');
+    const ctx = pad.getContext('2d');
+    const toggleDraw = document.getElementById('toggleDraw');
+    let drawing = false, drawActive = false, dirty = false;
+    let lastX = 0, lastY = 0, dpr = 1;
+
+    function sizeCanvas() {
+      const rect = pad.getBoundingClientRect();
+      dpr = window.devicePixelRatio || 1;
+      ctx.setTransform(1,0,0,1,0,0);
+      pad.width = Math.max(1, Math.floor(rect.width * dpr));
+      pad.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0,0, rect.width, rect.height);
+      dirty = false;
+    }
+    function startDraw(x, y) { drawing = true; lastX = x; lastY = y; }
+    function moveDraw(x, y) {
+      if (!drawing) return;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      lastX = x; lastY = y; dirty = true;
+    }
+    function endDraw() { drawing = false; }
+    function getPoint(e) {
+      const rect = pad.getBoundingClientRect();
+      if (e.touches && e.touches.length) {
+        const t = e.touches[0];
+        return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+      }
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+    function getVerticalContentBounds() {
+      const w = pad.width, h = pad.height;
+      if (!dirty || w === 0 || h === 0) return null;
+      try {
+        const data = ctx.getImageData(0,0,w,h).data;
+        let topFound = false, bottomFound = false, top = 0, bottom = h - 1;
+        for (let y = 0; y < h; y++) {
+          const row = y * w * 4;
+          for (let x = 0; x < w; x++) {
+            if (data[row + x*4 + 3] !== 0) { top = y; topFound = true; break; }
+          }
+          if (topFound) break;
+        }
+        if (!topFound) return null;
+        for (let y = h - 1; y >= 0; y--) {
+          const row = y * w * 4;
+          for (let x = 0; x < w; x++) {
+            if (data[row + x*4 + 3] !== 0) { bottom = y; bottomFound = true; break; }
+          }
+          if (bottomFound) break;
+        }
+        return { top, bottom };
+      } catch { return null; }
+    }
+    function saveDrawingIfAny() {
+      if (!dirty) return;
+      const w = pad.width, h = pad.height;
+      const bounds = getVerticalContentBounds();
+      let sy = 0, sh = h;
+      const cssDpr = window.devicePixelRatio || 1;
+      const margin = Math.round(cssDpr * 2);
+      if (bounds) {
+        sy = Math.max(0, bounds.top - margin);
+        const btm = Math.min(h - 1, bounds.bottom + margin);
+        sh = Math.max(1, btm - sy + 1);
+      }
+      const off = document.createElement('canvas');
+      off.width = w;
+      off.height = sh;
+      const offCtx = off.getContext('2d');
+      offCtx.drawImage(pad, 0, sy, w, sh, 0, 0, w, sh);
+      const img = new Image();
+      img.src = off.toDataURL('image/png');
+      drawings.appendChild(img);
+      const rect = pad.getBoundingClientRect();
+      ctx.clearRect(0,0, rect.width, rect.height);
+      dirty = false;
+      board.focus();
+    }
+
+    toggleDraw.addEventListener('click', () => {
+      // Save whatever is there first
+      saveDrawingIfAny();
+      drawActive = !drawActive;
+      toggleDraw.textContent = drawActive ? 'Draw: On' : 'Draw: Off';
+      toggleDraw.setAttribute('aria-pressed', String(drawActive));
+      document.body.classList.toggle('drawing-active', drawActive);
+      if (drawActive) {
+        board.blur();
+        sizeCanvas();
+      } else {
+        board.focus();
+      }
+    });
+
+    pad.addEventListener('touchstart', (e) => { if(!drawActive) return; e.preventDefault(); const p=getPoint(e); startDraw(p.x, p.y); });
+    pad.addEventListener('touchmove',  (e) => { if(!drawActive) return; e.preventDefault(); const p=getPoint(e); moveDraw(p.x, p.y); });
+    pad.addEventListener('touchend',   (e) => { if(!drawActive) return; e.preventDefault(); endDraw(); });
+    pad.addEventListener('mousedown', (e) => { if(!drawActive) return; const p=getPoint(e); startDraw(p.x, p.y); });
+    pad.addEventListener('mousemove', (e) => { if(!drawActive) return; const p=getPoint(e); moveDraw(p.x, p.y); });
+    pad.addEventListener('mouseup', endDraw);
+    pad.addEventListener('mouseleave', endDraw);
+    window.addEventListener('resize', sizeCanvas);
   </script>
 </body>
 </html>
