@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Typeboard — Text + Draw</title>
+  <title>Typeboard — Sticky + Draw</title>
   <style>
-    :root { --header-bg:#fff; --border:#eaeaea; }
+    :root { --header-bg:#fff; --border:#eaeaea; --pad:10px; }
     html, body {
       height: 100%;
       margin: 0;
@@ -17,48 +17,136 @@
       color: #111;
       -webkit-user-select: text;
     }
-    .wrap { height: 100%; display: flex; flex-direction: column; }
+    .wrap {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Sticky header that contains controls + quick phrases */
     .sticky {
-      position: sticky; top: 0; z-index: 10;
-      background: var(--header-bg); border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border);
     }
     .bar {
-      padding: 8px; display: flex; gap: 8px; align-items: center; justify-content: space-between;
+      padding: 8px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
     }
     .left, .right { display: flex; gap: 8px; align-items: center; }
     .btn {
-      padding: 10px 14px; font-size: 16px; font-weight: 600;
-      border: 1px solid #ddd; border-radius: 10px; background: #f7f7fb;
+      padding: 10px 14px;
+      font-size: 16px;
+      font-weight: 600;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #f7f7fb;
     }
     .btn:active { background:#efeff4; }
     .btn-clear { background:#ff3b30; color:#fff; border-color:#ff3b30; }
     .toggle-on { background:#34c759; color:#fff; border-color:#34c759; }
     .quickbar {
-      display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
-      padding: 8px; border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 8px;
+      border-top: 1px solid var(--border);
     }
     .chip {
-      flex: 0 0 auto; padding: 10px 12px; border-radius: 20px;
-      border: 1px solid #ddd; background: #fafafa; font-weight: 600; font-size: 15px; white-space: nowrap;
+      flex: 0 0 auto;
+      padding: 10px 12px;
+      border-radius: 20px;
+      border: 1px solid #ddd;
+      background: #fafafa;
+      font-weight: 600;
+      font-size: 15px;
+      user-select: none;
+      white-space: nowrap;
     }
     .chip:active { background:#f0f0f0; }
-    .edit-phrases { margin-left: auto; padding: 8px 12px; border-radius: 10px; border: 1px solid #ddd; background: #fff; font-weight: 600; font-size: 14px; flex: 0 0 auto; }
-
-    .area { position: relative; flex: 1; padding: 8px; overflow: auto; }
-    #doc {
-      min-height: 100%; outline: none; border: none; padding: 8px;
-      font-size: 28px; line-height: 1.4; -webkit-user-select: text;
+    .edit-phrases {
+      margin-left: auto;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      background: #fff;
+      font-weight: 600;
+      font-size: 14px;
+      flex: 0 0 auto;
     }
-    #doc img { max-width: 100%; height: auto; display: block; margin: 4px 0; border-radius: 6px; }
 
-    /* Drawing canvas */
+    /* Content area */
+    .area {
+      position: relative;
+      flex: 1;
+      padding: 8px;
+    }
+    textarea {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      border: none;
+      outline: none;
+      resize: none;
+      font-size: 28px;
+      line-height: 1.4;
+      -webkit-appearance: none;
+    }
+    /* Canvas sits on top, only captures touches when drawing is ON */
     #pad {
-      position: absolute; left: 8px; top: 8px; right: 8px; bottom: 8px;
-      width: calc(100% - 16px); height: calc(100% - 16px);
-      touch-action: none; border-radius: 6px;
-      pointer-events: none;
+      position: absolute;
+      inset: 8px;
+      width: calc(100% - 16px);
+      height: calc(100% - 16px);
+      touch-action: none; /* better drawing on touch */
+      border-radius: 6px;
+      pointer-events: none; /* disabled by default */
     }
     .drawing-active #pad { pointer-events: auto; }
+
+    /* Dialog styles */
+    dialog::backdrop { background: rgba(0,0,0,0.35); }
+    dialog {
+      border: none;
+      border-radius: 16px;
+      max-width: 560px;
+      width: calc(100% - 32px);
+      padding: 0;
+      overflow: hidden;
+    }
+    .dlg-head {
+      padding: 14px 16px;
+      font-weight: 700;
+      border-bottom: 1px solid #eee;
+      background: #fafafa;
+    }
+    .dlg-body { padding: 12px 16px; max-height: 60vh; overflow: auto; }
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .row input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+    }
+    .dlg-foot {
+      display: flex;
+      gap: 10px;
+      padding: 12px 16px;
+      border-top: 1px solid #eee;
+      justify-content: flex-end;
+      background: #fafafa;
+    }
   </style>
 </head>
 <body>
@@ -81,20 +169,22 @@
       </div>
     </div>
 
-    <div class="area" id="area">
-      <div id="doc" contenteditable="true" spellcheck="false" aria-label="Type here…"></div>
+    <div class="area">
+      <textarea id="board" placeholder="Type here…"></textarea>
       <canvas id="pad"></canvas>
     </div>
   </div>
 
   <dialog id="dlg">
-    <div class="dlg-head" style="padding:14px 16px; font-weight:700; border-bottom:1px solid #eee; background:#fafafa;">Quick Phrases</div>
-    <div class="dlg-body" style="padding:12px 16px; max-height:60vh; overflow:auto;">
-      <div style="margin-bottom:8px; color:#666; font-size:13px;">Edit your most-used phrases. Saved on this iPad.</div>
+    <div class="dlg-head">Quick Phrases</div>
+    <div class="dlg-body">
+      <div class="row" style="margin-bottom:8px; color:#666; font-size:13px;">
+        Edit your most-used phrases. Saved on this device.
+      </div>
       <div id="rows"></div>
       <button class="btn" id="addRow" type="button">+ Add phrase</button>
     </div>
-    <div class="dlg-foot" style="display:flex; gap:10px; padding:12px 16px; border-top:1px solid #eee; justify-content:flex-end; background:#fafafa;">
+    <div class="dlg-foot">
       <button class="btn" id="reset" type="button">Reset</button>
       <button class="btn" id="cancel" type="button">Cancel</button>
       <button class="btn btn-clear" id="save" type="button">Save</button>
@@ -102,10 +192,9 @@
   </dialog>
 
   <script>
-    // Elements
+    // --- Elements
     const wrap = document.getElementById('wrap');
-    const area = document.getElementById('area');
-    const docEl = document.getElementById('doc');
+    const board = document.getElementById('board');
     const pad = document.getElementById('pad');
     const ctx = pad.getContext('2d');
     const bigger = document.getElementById('bigger');
@@ -122,10 +211,10 @@
     const save = document.getElementById('save');
     const reset = document.getElementById('reset');
 
-    // Default phrases (Spanish set, per your request)
-    const DEFAULTS = ["Sí","No","No lo sé","Perfecto","Necesito","Lavabo","Gasas","Me pasas","Hoy","Mañana"];
-
-    // Storage
+    // --- Quick phrases
+    const DEFAULTS = [
+      "Sí","No", "No lo sé”, “Perfecto", "Necesito", "Lavabo", "Gasas", "Me pasas", "Hoy", "Mañana"
+    ];
     function loadPhrases() {
       try {
         const raw = localStorage.getItem('typeboard.phrases');
@@ -137,8 +226,6 @@
     function savePhrases(list) {
       localStorage.setItem('typeboard.phrases', JSON.stringify(list.filter(Boolean)));
     }
-
-    // Chips
     function renderChips() {
       const list = loadPhrases();
       quickbar.querySelectorAll('.chip').forEach(c => c.remove());
@@ -150,15 +237,17 @@
         chip.textContent = txt;
 
         chip.addEventListener('click', () => {
-          insertTextAtCursor((needsSpace() ? ' ' : '') + txt);
-          focusCaret();
+          const needsSpace = board.value && !board.value.endsWith(' ');
+          board.value = (board.value || '') + (needsSpace ? ' ' : '') + txt;
+          board.focus();
+          board.selectionStart = board.selectionEnd = board.value.length;
         });
         chip.addEventListener('dblclick', (e) => {
           e.preventDefault();
-          docEl.innerHTML = escapeHTML(txt);
-          focusCaret();
+          board.value = txt;
+          board.focus();
         });
-        // Long press edit
+        // Long-press to edit a single phrase
         let pressTimer;
         chip.addEventListener('touchstart', () => {
           pressTimer = setTimeout(() => {
@@ -177,8 +266,6 @@
         quickbar.insertBefore(chip, edit);
       });
     }
-
-    // Dialog
     function openEditor() {
       rows.innerHTML = '';
       const list = loadPhrases();
@@ -189,19 +276,10 @@
     function addEditorRow(val='') {
       const row = document.createElement('div');
       row.className = 'row';
-      row.style.display = 'flex';
-      row.style.gap = '10px';
-      row.style.alignItems = 'center';
-      row.style.marginBottom = '10px';
       const input = document.createElement('input');
       input.type = 'text';
       input.placeholder = 'Phrase';
       input.value = val;
-      input.style.flex = '1';
-      input.style.padding = '10px 12px';
-      input.style.fontSize = '16px';
-      input.style.border = '1px solid #ddd';
-      input.style.borderRadius = '10px';
       const del = document.createElement('button');
       del.type = 'button';
       del.textContent = 'Delete';
@@ -212,142 +290,69 @@
       rows.appendChild(row);
     }
 
-    // Drawing state
-    let drawing = false, drawActive = false, dirty = false;
+    // --- Drawing
+    let drawing = false;
+    let drawActive = false;
     let lastX = 0, lastY = 0, dpr = 1;
 
     function sizeCanvas() {
       const rect = pad.getBoundingClientRect();
       dpr = window.devicePixelRatio || 1;
+      // Reset transform before resizing to avoid compounded scales
       ctx.setTransform(1,0,0,1,0,0);
       pad.width = Math.max(1, Math.floor(rect.width * dpr));
       pad.height = Math.max(1, Math.floor(rect.height * dpr));
       ctx.scale(dpr, dpr);
       ctx.clearRect(0,0, rect.width, rect.height);
-      dirty = false;
     }
 
-    function startDraw(x, y) { drawing = true; lastX = x; lastY = y; }
+    function startDraw(x, y) {
+      drawing = true;
+      lastX = x; lastY = y;
+    }
     function moveDraw(x, y) {
       if (!drawing) return;
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
-      lastX = x; lastY = y; dirty = true;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      lastX = x; lastY = y;
     }
     function endDraw() { drawing = false; }
 
     function getPoint(e) {
-      const rect = pad.getBoundingClientRect();
       if (e.touches && e.touches.length) {
         const t = e.touches[0];
+        const rect = pad.getBoundingClientRect();
         return { x: t.clientX - rect.left, y: t.clientY - rect.top };
       } else {
+        const rect = pad.getBoundingClientRect();
         return { x: e.clientX - rect.left, y: e.clientY - rect.top };
       }
     }
 
-    // Insert canvas as image + zero-width space to continue typing with no big gap
-    function insertCanvasIntoDoc() {
-      if (!dirty) return;
-      const dataURL = pad.toDataURL('image/png');
-      const img = new Image();
-      img.src = dataURL;
-      img.alt = 'Drawing';
-      img.style.maxWidth = '100%';
-      img.style.display = 'block';
-      img.style.margin = '4px 0';
-      insertNodeAtCursor(img);
-      // Insert a zero-width space so the caret has a position right under the image
-      const zwsp = document.createTextNode('\\u200B');
-      insertNodeAtCursor(zwsp);
-      focusCaret();
-      // Clear canvas
-      const rect = pad.getBoundingClientRect();
-      ctx.clearRect(0,0, rect.width, rect.height);
-      dirty = false;
-    }
+    window.addEventListener('resize', sizeCanvas);
 
-    // Contenteditable helpers
-    function needsSpace() {
-      const n = docEl.textContent || '';
-      return n.length > 0 && !/\\s$/.test(n);
-    }
-    function insertTextAtCursor(text) {
-      const sel = window.getSelection();
-      if (!sel.rangeCount) { docEl.appendChild(document.createTextNode(text)); return; }
-      const range = sel.getRangeAt(0);
-      range.deleteContents();
-      range.insertNode(document.createTextNode(text));
-      range.collapse(false);
-      sel.removeAllRanges(); sel.addRange(range);
-    }
-    function insertNodeAtCursor(node) {
-      const sel = window.getSelection();
-      if (!sel.rangeCount) { docEl.appendChild(node); return; }
-      const range = sel.getRangeAt(0);
-      range.collapse(true);
-      range.insertNode(node);
-      // place caret after node
-      range.setStartAfter(node);
-      range.setEndAfter(node);
-      sel.removeAllRanges(); sel.addRange(range);
-    }
-    function focusCaret() {
-      docEl.focus();
-      // Ensure there's a selection
-      const sel = window.getSelection();
-      if (!sel.rangeCount) {
-        const range = document.createRange();
-        range.selectNodeContents(docEl);
-        range.collapse(false);
-        sel.removeAllRanges(); sel.addRange(range);
-      }
-      scrollCaretIntoView();
-    }
-    function escapeHTML(str) {
-      return str.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',\"'\":'&#39;'}[s]));
-    }
-
-    // Auto-scroll the container so caret is visible
-    function scrollCaretIntoView() {
-      const sel = window.getSelection();
-      if (!sel.rangeCount) return;
-      const range = sel.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      const areaRect = area.getBoundingClientRect();
-      if (!rect || rect.width===0 && rect.height===0) return;
-      const offsetTop = rect.top - areaRect.top;
-      const offsetBottom = rect.bottom - areaRect.top;
-      const padding = 40; // keep some breathing room
-      if (offsetTop < padding) {
-        area.scrollTop += offsetTop - padding;
-      } else if (offsetBottom > area.clientHeight - padding) {
-        area.scrollTop += offsetBottom - (area.clientHeight - padding);
-      }
-    }
-
-    // Events
-    window.addEventListener('load', () => {
-      renderChips();
-      sizeCanvas();
-      focusCaret();
-    });
-    window.addEventListener('resize', () => {
-      sizeCanvas();
-      scrollCaretIntoView();
-    });
-
-    // Drawing events
     pad.addEventListener('touchstart', (e) => { if(!drawActive) return; e.preventDefault(); const p = getPoint(e); startDraw(p.x, p.y); });
     pad.addEventListener('touchmove', (e) => { if(!drawActive) return; e.preventDefault(); const p = getPoint(e); moveDraw(p.x, p.y); });
     pad.addEventListener('touchend', (e) => { if(!drawActive) return; e.preventDefault(); endDraw(); });
 
     pad.addEventListener('mousedown', (e) => { if(!drawActive) return; const p = getPoint(e); startDraw(p.x, p.y); });
-    pad.addEventListener('mousemove', (e) => { if(!drawActive) return; const p = getPoint(e); moveDraw(p.x, y = e.clientY); });
+    pad.addEventListener('mousemove', (e) => { if(!drawActive) return; const p = getPoint(e); moveDraw(p.x, p.y); });
     pad.addEventListener('mouseup', endDraw);
     pad.addEventListener('mouseleave', endDraw);
 
-    // Controls
+    // --- Events & Controls
+    window.addEventListener('load', () => {
+      renderChips();
+      sizeCanvas();
+      board.focus();
+    });
+
     editBtn.addEventListener('click', openEditor);
     addRow.addEventListener('click', () => addEditorRow(''));
     cancel.addEventListener('click', () => dlg.close());
@@ -366,54 +371,49 @@
       dlg.close();
     });
 
+    // Font size
     function getSize() {
-      const s = window.getComputedStyle(docEl).fontSize;
+      const s = window.getComputedStyle(board).fontSize;
       return parseFloat(s || '28');
     }
-    bigger.addEventListener('click', () => { docEl.style.fontSize = Math.min(getSize() + 4, 72) + 'px'; focusCaret(); });
-    smaller.addEventListener('click', () => { docEl.style.fontSize = Math.max(getSize() - 4, 14) + 'px'; focusCaret(); });
+    bigger.addEventListener('click', () => {
+      board.style.fontSize = Math.min(getSize() + 4, 72) + 'px';
+      board.focus();
+    });
+    smaller.addEventListener('click', () => {
+      board.style.fontSize = Math.max(getSize() - 4, 14) + 'px';
+      board.focus();
+    });
 
+    // Clear buttons
     clearText.addEventListener('click', () => {
-      if (confirm('Clear all text (including inserted drawings)?')) {
-        docEl.innerHTML = '';
-        focusCaret();
+      if (confirm('Clear all typed text?')) {
+        board.value='';
+        board.focus();
       }
     });
     clearDrawing.addEventListener('click', () => {
-      if (confirm('Clear the current unsaved drawing?')) {
+      if (confirm('Clear all drawing?')) {
         const rect = pad.getBoundingClientRect();
         ctx.clearRect(0,0, rect.width, rect.height);
-        dirty = false;
       }
     });
 
+    // Draw toggle
     toggleDraw.addEventListener('click', () => {
       drawActive = !drawActive;
-      if (drawActive) {
-        toggleDraw.textContent = 'Draw: On';
-        toggleDraw.classList.add('toggle-on');
-        wrap.classList.add('drawing-active');
-        docEl.blur();
-      } else {
-        // Save drawing inline, then return to typing
-        insertCanvasIntoDoc();
-        toggleDraw.textContent = 'Draw: Off';
-        toggleDraw.classList.remove('toggle-on');
-        wrap.classList.remove('drawing-active');
-        focusCaret();
-      }
+      toggleDraw.textContent = drawActive ? 'Draw: On' : 'Draw: Off';
+      toggleDraw.classList.toggle('toggle-on', drawActive);
+      wrap.classList.toggle('drawing-active', drawActive);
+      if (drawActive) board.blur(); else board.focus();
+      sizeCanvas();
     });
 
-    // Auto-scroll on typing
-    docEl.addEventListener('input', scrollCaretIntoView);
-    docEl.addEventListener('keyup', scrollCaretIntoView);
-
-    // Keyboard shortcut
+    // Keyboard shortcut: Cmd/Ctrl + Backspace to clear text
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'Backspace' || e.key === 'Delete')) {
         e.preventDefault();
-        docEl.innerHTML = '';
-        focusCaret();
+        board.value = '';
       }
     });
   </script>
