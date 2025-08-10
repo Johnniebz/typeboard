@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Typeboard — Type & Erase</title>
+  <title>Typeboard — Quick Phrases</title>
   <style>
+    :root { --pad: 10px; }
     html, body {
       height: 100%;
       margin: 0;
@@ -14,7 +15,6 @@
       font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       background: #ffffff;
       color: #111;
-      -webkit-user-select: text;
     }
     .wrap {
       height: 100%;
@@ -30,11 +30,11 @@
       gap: 8px;
     }
     .btn {
-      padding: 10px 16px;
+      padding: 10px 14px;
       font-size: 18px;
       font-weight: 600;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
       -webkit-tap-highlight-color: rgba(0,0,0,0);
     }
@@ -46,6 +46,34 @@
     .btn-large {
       background: #f2f2f7;
       color: #111;
+    }
+    .quickbar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 8px;
+      border-bottom: 1px solid #f1f1f1;
+    }
+    .chip {
+      flex: 0 0 auto;
+      padding: 10px 12px;
+      border-radius: 20px;
+      border: 1px solid #ddd;
+      background: #fafafa;
+      font-weight: 600;
+      font-size: 16px;
+      user-select: none;
+    }
+    .chip:active { background: #f0f0f0; }
+    .edit-phrases {
+      margin-left: auto;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      background: #fff;
+      font-weight: 600;
+      font-size: 14px;
     }
     .area {
       flex: 1;
@@ -62,28 +90,200 @@
       line-height: 1.4;
       -webkit-appearance: none;
     }
+    /* Dialog */
+    dialog::backdrop { background: rgba(0,0,0,0.35); }
+    dialog {
+      border: none;
+      border-radius: 16px;
+      max-width: 560px;
+      width: calc(100% - 32px);
+      padding: 0;
+      overflow: hidden;
+    }
+    .dlg-head {
+      padding: 14px 16px;
+      font-weight: 700;
+      border-bottom: 1px solid #eee;
+      background: #fafafa;
+    }
+    .dlg-body { padding: 12px 16px; max-height: 60vh; overflow: auto; }
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .row input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+    }
+    .dlg-foot {
+      display: flex;
+      gap: 10px;
+      padding: 12px 16px;
+      border-top: 1px solid #eee;
+      justify-content: flex-end;
+      background: #fafafa;
+    }
+    .btn-sec {
+      background: #f2f2f7;
+      color: #111;
+    }
+    .note {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="bar">
-      <div style="display: flex; gap: 8px;">
+      <div style="display:flex; gap:8px;">
         <button class="btn btn-large" id="bigger" type="button">A+</button>
         <button class="btn btn-large" id="smaller" type="button">A−</button>
       </div>
       <button class="btn btn-clear" id="clear" type="button">CLEAR</button>
     </div>
+
+    <div class="quickbar" id="quickbar">
+      <!-- chips injected here -->
+      <button class="edit-phrases" id="editPhrases" type="button">Edit Phrases</button>
+    </div>
+
     <div class="area">
       <textarea id="board" placeholder="Type here…"></textarea>
     </div>
   </div>
+
+  <dialog id="dlg">
+    <div class="dlg-head">Quick Phrases</div>
+    <div class="dlg-body">
+      <div class="note">Tap to edit your most-used phrases. They’ll be saved on this device.</div>
+      <div id="rows"></div>
+      <button class="btn btn-sec" id="addRow" type="button">+ Add phrase</button>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn btn-sec" id="reset" type="button">Reset</button>
+      <button class="btn btn-sec" id="cancel" type="button">Cancel</button>
+      <button class="btn btn-clear" id="save" type="button">Save</button>
+    </div>
+  </dialog>
+
   <script>
     const board = document.getElementById('board');
     const clearBtn = document.getElementById('clear');
     const bigger = document.getElementById('bigger');
     const smaller = document.getElementById('smaller');
+    const quickbar = document.getElementById('quickbar');
+    const editBtn = document.getElementById('editPhrases');
+    const dlg = document.getElementById('dlg');
+    const rows = document.getElementById('rows');
+    const addRow = document.getElementById('addRow');
+    const cancel = document.getElementById('cancel');
+    const save = document.getElementById('save');
+    const reset = document.getElementById('reset');
 
-    window.addEventListener('load', () => board.focus());
+    const DEFAULTS = [
+      "Yes","No","Please wait","Thank you",
+      "I need help","Bathroom","I’m in pain","Call my family"
+    ];
+
+    function loadPhrases() {
+      try {
+        const raw = localStorage.getItem('typeboard.phrases');
+        const arr = raw ? JSON.parse(raw) : DEFAULTS.slice();
+        if (!Array.isArray(arr) || arr.length === 0) return DEFAULTS.slice();
+        return arr.slice(0, 20); // cap at 20
+      } catch(e) {
+        return DEFAULTS.slice();
+      }
+    }
+    function savePhrases(list) {
+      localStorage.setItem('typeboard.phrases', JSON.stringify(list.filter(Boolean)));
+    }
+
+    function renderChips() {
+      const list = loadPhrases();
+      // Remove old chips except the edit button
+      quickbar.querySelectorAll('.chip').forEach(c => c.remove());
+      // Insert chips before the edit button
+      const edit = editBtn;
+      list.forEach((txt, idx) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = txt;
+
+        // Single tap: append with space
+        chip.addEventListener('click', () => {
+          const needsSpace = board.value && !board.value.endsWith(' ');
+          board.value = (board.value || '') + (needsSpace ? ' ' : '') + txt;
+          board.focus();
+          // move cursor to end
+          board.selectionStart = board.selectionEnd = board.value.length;
+        });
+
+        // Double-tap: replace entire text
+        chip.addEventListener('dblclick', (e) => {
+          e.preventDefault();
+          board.value = txt;
+          board.focus();
+        });
+
+        // Long-press to edit that single chip
+        let pressTimer;
+        chip.addEventListener('touchstart', () => {
+          pressTimer = setTimeout(() => {
+            const newTxt = prompt('Edit phrase:', txt);
+            if (newTxt !== null) {
+              const list2 = loadPhrases();
+              list2[idx] = newTxt.trim();
+              savePhrases(list2);
+              renderChips();
+            }
+          }, 550);
+        });
+        chip.addEventListener('touchend', () => clearTimeout(pressTimer));
+        chip.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
+        quickbar.insertBefore(chip, edit);
+      });
+    }
+
+    function openEditor() {
+      rows.innerHTML = '';
+      const list = loadPhrases();
+      list.forEach((txt, i) => addEditorRow(txt));
+      if (list.length === 0) addEditorRow('');
+      dlg.showModal();
+    }
+
+    function addEditorRow(val='') {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Phrase';
+      input.value = val;
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.textContent = 'Delete';
+      del.className = 'btn btn-sec';
+      del.addEventListener('click', () => row.remove());
+      row.appendChild(input);
+      row.appendChild(del);
+      rows.appendChild(row);
+    }
+
+    // Events
+    window.addEventListener('load', () => {
+      renderChips();
+      board.focus();
+    });
 
     clearBtn.addEventListener('click', () => {
       board.value = '';
@@ -103,6 +303,27 @@
       board.focus();
     });
 
+    editBtn.addEventListener('click', openEditor);
+    addRow.addEventListener('click', () => addEditorRow(''));
+    cancel.addEventListener('click', () => dlg.close());
+
+    reset.addEventListener('click', () => {
+      if (confirm('Reset phrases to defaults?')) {
+        savePhrases(DEFAULTS.slice());
+        renderChips();
+        dlg.close();
+      }
+    });
+
+    save.addEventListener('click', () => {
+      const inputs = Array.from(rows.querySelectorAll('input[type="text"]'));
+      const list = inputs.map(i => i.value.trim()).filter(Boolean);
+      savePhrases(list);
+      renderChips();
+      dlg.close();
+    });
+
+    // Keyboard shortcut: Cmd/Ctrl + Backspace to clear
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'Backspace' || e.key === 'Delete')) {
         e.preventDefault();
