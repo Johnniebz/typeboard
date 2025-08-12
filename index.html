@@ -192,7 +192,7 @@
     const reset = document.getElementById('reset');
 
     /* -------- Phrases (existing) -------- */
-    const DEFAULTS = ["Sí","No","No lo sé","Perfecto","Necesito","Lavabo","Gasas","Me pasas","Hoy","Mañana"];
+    const DEFAULTS = ["Sí","No","No lo sé","Gracias"];
 
     function loadPhrases(){ try{ const raw=localStorage.getItem('typeboard.phrases'); const arr=raw?JSON.parse(raw):DEFAULTS.slice(); return Array.isArray(arr)&&arr.length?arr.slice(0,20):DEFAULTS.slice(); }catch{ return DEFAULTS.slice(); } }
     function savePhrases(list){ localStorage.setItem('typeboard.phrases', JSON.stringify(list.filter(Boolean))); }
