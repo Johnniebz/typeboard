@@ -25,7 +25,7 @@
       appearance: none; -webkit-appearance: none;
       padding: 10px 12px; font-size: 16px;
       border-radius: 10px; border: 1px solid #ddd; background: #fff;
-      width: 180px;                 /* fixed width */
+      width: 180px; /* fixed width */
     }
 
     .quickbar { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 8px; border-top: 1px solid #f6f6f6; border-bottom: 1px solid #f1f1f1; background: #fff; }
@@ -213,7 +213,7 @@
 
     document.addEventListener('keydown',(e)=>{ if((e.metaKey||e.ctrlKey) && (e.key==='Backspace'||e.key==='Delete')){ e.preventDefault(); board.value=''; drawings.innerHTML=''; const rect=pad.getBoundingClientRect(); ctx.clearRect(0,0,rect.width,rect.height); dirty=false; } });
 
-    /* -------- Notes (compact + draggable, inline delete) -------- */
+    /* -------- Notes (compact + draggable, inline delete only) -------- */
     const NOTES_KEY='typeboard.notes', NOTES_TITLE_MAX=40;
     const notesDlg=document.getElementById('notesDlg');
     const notesList=document.getElementById('notesList');
@@ -257,7 +257,6 @@
       editor.innerHTML = `
         <div class="row">
           <input type="text" class="title-input" placeholder="Note title (max ${NOTES_TITLE_MAX} chars)" maxlength="${NOTES_TITLE_MAX}">
-          <button class="btn btn-sec delete-btn" type="button">Delete</button>
         </div>
         <textarea class="body-input" placeholder="Write your note text here..."></textarea>
         <div class="actions"><span style="font-size:13px;color:#666;">Changes are saved with “Save Changes”.</span></div>
@@ -278,10 +277,9 @@
       // live title preview
       titleInput.addEventListener('input', (e)=>{ const t=e.target.value.trim(); titleSpan.textContent=t||'Untitled'; });
 
-      // delete actions (both inline + inside editor)
+      // delete action (inline only)
       const doDelete = () => { if (confirm('Delete this note?')) row.remove(); };
       delInline.addEventListener('click', doDelete);
-      editor.querySelector('.delete-btn').addEventListener('click', doDelete);
 
       enableRowDrag(row, handle);
 
@@ -377,7 +375,7 @@
     function startDraw(x,y){ drawing=true; lastX=x; lastY=y; }
     function moveDraw(x,y){ if(!drawing) return; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#111'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(x,y); ctx.stroke(); lastX=x; lastY=y; dirty=true; }
     function endDraw(){ drawing=false; }
-    function getPoint(e){ const rect=pad.getBoundingClientRect(); if(e.touches&&e.touches.length){ const t=e.touches[0]; return {x:t.clientX-rect.left, y:t.clientY-rect.top}; } return {x:e.clientX-rect.left, y:e.clientY-rect.top}; }
+    function getPoint(e){ const rect=pad.getBoundingClientRect(); if(e.touches&&e.touches.length){ const t=e.touches[0]; return {x:t.clientX-rect.left, y:t.clientY-rect.top}; } return {x:e.clientX-rect.left, y:e.clientY-rect-top}; }
     function getVerticalContentBounds(){ const w=pad.width, h=pad.height; if(!dirty||!w||!h) return null; try{ const data=ctx.getImageData(0,0,w,h).data; let topFound=false, bottomFound=false, top=0, bottom=h-1; for(let y=0;y<h;y++){ const row=y*w*4; for(let x=0;x<w;x++){ if(data[row+x*4+3]!==0){ top=y; topFound=true; break; } } if(topFound) break; } if(!topFound) return null; for(let y=h-1;y>=0;y--){ const row=y*w*4; for(let x=0;x<w;x++){ if(data[row+x*4+3]!==0){ bottom=y; bottomFound=true; break; } } if(bottomFound) break; } return {top,bottom}; }catch{ return null; } }
     function saveDrawingIfAny(){ if(!dirty) return; const w=pad.width,h=pad.height; const b=getVerticalContentBounds(); let sy=0,sh=h; const cssDpr=window.devicePixelRatio||1; const margin=Math.round(cssDpr*2); if(b){ sy=Math.max(0,b.top-margin); const bt=Math.min(h-1,b.bottom+margin); sh=Math.max(1, bt-sy+1); } const off=document.createElement('canvas'); off.width=w; off.height=sh; const offCtx=off.getContext('2d'); offCtx.drawImage(pad,0,sy,w,sh,0,0,w,sh); const img=new Image(); img.src=off.toDataURL('image/png'); drawings.appendChild(img); const rect=pad.getBoundingClientRect(); ctx.clearRect(0,0, rect.width, rect.height); dirty=false; board.focus(); }
 
