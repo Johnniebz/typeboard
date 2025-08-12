@@ -112,7 +112,7 @@
       font-size: 14px;
     }
 
-    textarea {
+    .area textarea {
       width: 100%;
       height: 100%;
       box-sizing: border-box;
@@ -141,19 +141,6 @@
       background: #fafafa;
     }
     .dlg-body { padding: 12px 16px; max-height: 60vh; overflow: auto; }
-    .row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .row input[type="text"] {
-      flex: 1;
-      padding: 10px 12px;
-      font-size: 16px;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-    }
     .dlg-foot {
       display: flex;
       gap: 10px;
@@ -162,59 +149,80 @@
       justify-content: flex-end;
       background: #fafafa;
     }
-    .btn-sec {
-      background: #f2f2f7;
-      color: #111;
-    }
-    .note {
-      font-size: 13px;
-      color: #666;
-      margin-bottom: 10px;
-    }
+    .btn-sec { background: #f2f2f7; color: #111; }
+    .note { font-size: 13px; color: #666; margin-bottom: 10px; }
 
-    /* Notes Manager styles */
-    .note-card {
+    /* Notes Manager — compact, draggable rows */
+    .note-row {
+      display: grid;
+      grid-template-columns: 28px 1fr 24px;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 8px;
       border: 1px solid #eee;
       border-radius: 12px;
-      padding: 10px;
-      margin-bottom: 10px;
       background: #fff;
+      margin-bottom: 8px;
+      touch-action: pan-y;
     }
-    .note-card .title-line {
+    .note-row.dragging {
+      opacity: 0.85;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
+    .note-row .handle {
+      font-size: 18px;
+      line-height: 1;
+      user-select: none;
+      cursor: grab;
+      text-align: center;
+    }
+    .note-row .title {
+      font-weight: 600;
+      font-size: 16px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .note-row .chev {
+      font-size: 18px;
+      text-align: center;
+      user-select: none;
+    }
+    .note-editor {
+      display: none;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed #eee;
+    }
+    .note-row.expanded .note-editor { display: block; }
+    .note-editor .row {
       display: flex;
       gap: 8px;
-      align-items: center;
       margin-bottom: 8px;
     }
-    .note-card .title-line input[type="text"] {
-      flex: 1;
+    .note-editor input[type="text"] {
+      flex: 1; padding: 10px 12px; font-size: 15px; border: 1px solid #ddd; border-radius: 10px;
     }
-    .note-card textarea {
-      width: 100%;
-      min-height: 100px;
-      font-size: 15px;
-      line-height: 1.4;
-      box-sizing: border-box;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 8px 10px;
+    .note-editor textarea {
+      width: 100%; min-height: 120px; font-size: 15px; line-height: 1.4;
+      border: 1px solid #ddd; border-radius: 10px; padding: 8px 10px; box-sizing: border-box;
     }
-    .note-card .actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-      justify-content: flex-end;
+    .note-editor .actions {
+      display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;
+    }
+    .drag-placeholder {
+      height: 56px;
+      border: 2px dashed #cfcfcf;
+      border-radius: 12px;
+      margin: 8px 0;
     }
 
     /* Drawing overlay + saved images */
     #pad {
       position: absolute;
-      left: 8px;
-      right: 8px;
-      bottom: 8px;
-      /* top is set dynamically to sit under the caret if you add caret positioning */
-      width: auto;
-      height: auto;
+      inset: 8px;
+      width: calc(100% - 16px);
+      height: calc(100% - 16px);
       touch-action: none;
       border-radius: 6px;
       pointer-events: none;
@@ -276,11 +284,11 @@
     </div>
   </dialog>
 
-  <!-- Notes Manager dialog (NEW) -->
+  <!-- Notes Manager dialog (NEW, compact + draggable) -->
   <dialog id="notesDlg">
     <div class="dlg-head">Notes</div>
     <div class="dlg-body">
-      <div class="note">Create longer messages you can insert quickly. Titles are limited to 40 characters.</div>
+      <div class="note">Tap a note to edit. Drag the <span style="font-weight:700;">☰</span> handle to reorder. Titles max 40 chars.</div>
       <div id="notesList"></div>
       <button class="btn btn-sec" id="addNote" type="button">+ Add note</button>
     </div>
@@ -446,7 +454,7 @@
       }
     });
 
-    /* -------- Notes (NEW) -------- */
+    /* -------- Notes (NEW compact + draggable) -------- */
     const NOTES_KEY = 'typeboard.notes';
     const NOTES_TITLE_MAX = 40;
     const notesDlg = document.getElementById('notesDlg');
@@ -470,7 +478,6 @@
 
     function renderNotesPicker() {
       const arr = loadNotes();
-      // reset
       notesPicker.innerHTML = '<option value="">Notes ▾</option>';
       arr.forEach((n, i) => {
         const opt = document.createElement('option');
@@ -486,111 +493,190 @@
       const arr = loadNotes();
       if (!isNaN(idx) && arr[idx]) {
         insertTextAtCursorTextarea(board, (board.value && !board.value.endsWith('\n') ? '\n' : '') + arr[idx].body);
-        // move caret to end and refocus
         board.selectionStart = board.selectionEnd = board.value.length;
         board.focus();
       }
-      // reset picker back to placeholder
       notesPicker.value = '';
     });
 
-    manageNotesBtn.addEventListener('click', () => {
-      openNotesManager();
-    });
+    manageNotesBtn.addEventListener('click', openNotesManager);
 
     function openNotesManager() {
       notesList.innerHTML = '';
       const arr = loadNotes();
-      arr.forEach((n, i) => addNoteCard(n.title, n.body));
-      if (arr.length === 0) addNoteCard('', '');
+      arr.forEach(n => addNoteRow(n.title, n.body));
+      if (arr.length === 0) addNoteRow('', '');
       notesDlg.showModal();
     }
 
-    function addNoteCard(title = '', body = '') {
-      const wrap = document.createElement('div');
-      wrap.className = 'note-card';
+    function addNoteRow(title = '', body = '') {
+      const row = document.createElement('div');
+      row.className = 'note-row';
+      row.setAttribute('data-title', title);
 
-      const titleLine = document.createElement('div');
-      titleLine.className = 'title-line';
-      const titleInput = document.createElement('input');
-      titleInput.type = 'text';
-      titleInput.placeholder = 'Note title (max 40 chars)';
-      titleInput.value = title.slice(0, NOTES_TITLE_MAX);
-      titleInput.maxLength = NOTES_TITLE_MAX;
+      // Handle (drag)
+      const handle = document.createElement('div');
+      handle.className = 'handle';
+      handle.textContent = '☰';
+      handle.title = 'Drag to reorder';
 
-      const upBtn = document.createElement('button');
-      upBtn.type = 'button';
-      upBtn.className = 'btn btn-sec';
-      upBtn.textContent = 'Up';
+      // Title display
+      const titleSpan = document.createElement('div');
+      titleSpan.className = 'title';
+      titleSpan.textContent = title || 'Untitled';
 
-      const downBtn = document.createElement('button');
-      downBtn.type = 'button';
-      downBtn.className = 'btn btn-sec';
-      downBtn.textContent = 'Down';
+      // Chevron
+      const chev = document.createElement('div');
+      chev.className = 'chev';
+      chev.textContent = '›';
 
-      const delBtn = document.createElement('button');
-      delBtn.type = 'button';
-      delBtn.className = 'btn btn-sec';
-      delBtn.textContent = 'Delete';
+      // Editor (collapsed by default)
+      const editor = document.createElement('div');
+      editor.className = 'note-editor';
+      editor.innerHTML = `
+        <div class="row">
+          <input type="text" class="title-input" placeholder="Note title (max ${NOTES_TITLE_MAX} chars)" maxlength="${NOTES_TITLE_MAX}">
+          <button class="btn btn-sec delete-btn" type="button">Delete</button>
+        </div>
+        <textarea class="body-input" placeholder="Write your note text here..."></textarea>
+        <div class="actions">
+          <span style="font-size:13px;color:#666;">Changes are saved when you press “Save Changes”.</span>
+        </div>
+      `;
+      row.appendChild(handle);
+      row.appendChild(titleSpan);
+      row.appendChild(chev);
+      row.appendChild(editor);
 
-      titleLine.appendChild(titleInput);
-      titleLine.appendChild(upBtn);
-      titleLine.appendChild(downBtn);
-      titleLine.appendChild(delBtn);
+      // Populate
+      editor.querySelector('.title-input').value = title.slice(0, NOTES_TITLE_MAX);
+      editor.querySelector('.body-input').value = body;
 
-      const bodyInput = document.createElement('textarea');
-      bodyInput.placeholder = 'Write your note text here...';
-      bodyInput.value = body;
+      // Expand/collapse
+      function toggleExpand() {
+        const expanded = row.classList.toggle('expanded');
+        chev.textContent = expanded ? '▾' : '›';
+      }
+      titleSpan.addEventListener('click', toggleExpand);
+      chev.addEventListener('click', toggleExpand);
 
-      const actions = document.createElement('div');
-      actions.className = 'actions';
-      const insertBtn = document.createElement('button');
-      insertBtn.type = 'button';
-      insertBtn.className = 'btn btn-large';
-      insertBtn.textContent = 'Insert into typing area';
-      actions.appendChild(insertBtn);
-
-      wrap.appendChild(titleLine);
-      wrap.appendChild(bodyInput);
-      wrap.appendChild(actions);
-
-      // Handlers
-      delBtn.addEventListener('click', () => wrap.remove());
-
-      upBtn.addEventListener('click', () => {
-        const prev = wrap.previousElementSibling;
-        if (prev) wrap.parentNode.insertBefore(wrap, prev);
-      });
-      downBtn.addEventListener('click', () => {
-        const next = wrap.nextElementSibling;
-        if (next) wrap.parentNode.insertBefore(next, wrap);
+      // Title live preview
+      editor.querySelector('.title-input').addEventListener('input', (e) => {
+        const t = e.target.value.trim();
+        titleSpan.textContent = t || 'Untitled';
       });
 
-      insertBtn.addEventListener('click', () => {
-        // Insert body at caret in the main textarea, keep dialog open
-        insertTextAtCursorTextarea(board, (board.value && !/[\s\n]$/.test(board.value) ? '\n' : '') + bodyInput.value);
-        board.focus();
+      // Delete
+      editor.querySelector('.delete-btn').addEventListener('click', () => {
+        row.remove();
       });
 
-      notesList.appendChild(wrap);
+      // Drag & drop (touch-friendly)
+      enableRowDrag(row, handle);
+
+      notesList.appendChild(row);
     }
 
-    addNoteBtn.addEventListener('click', () => addNoteCard('', ''));
+    addNoteBtn.addEventListener('click', () => addNoteRow('', ''));
 
     notesCancel.addEventListener('click', () => notesDlg.close());
 
     notesSave.addEventListener('click', () => {
-      // Collect all cards into an array in their current order
-      const cards = Array.from(notesList.querySelectorAll('.note-card'));
-      const arr = cards.map(card => {
-        const t = card.querySelector('input[type="text"]').value.trim().slice(0, NOTES_TITLE_MAX);
-        const b = card.querySelector('textarea').value;
+      // Collect rows in DOM order
+      const rowsDom = Array.from(notesList.querySelectorAll('.note-row'));
+      const arr = rowsDom.map(r => {
+        const t = r.querySelector('.title-input')?.value.trim().slice(0, NOTES_TITLE_MAX) || (r.getAttribute('data-title') || '').slice(0, NOTES_TITLE_MAX);
+        const b = r.querySelector('.body-input')?.value || '';
         return { title: t || 'Untitled', body: b };
       });
       saveNotes(arr);
       renderNotesPicker();
       notesDlg.close();
     });
+
+    // Drag/Drop helpers (works with mouse + touch/pointer)
+    function enableRowDrag(row, handle) {
+      let dragging = false;
+      let startY = 0;
+      let currentY = 0;
+      let placeholder = null;
+      let originIndex = -1;
+
+      const onPointerDown = (e) => {
+        e.preventDefault();
+        dragging = true;
+        startY = getY(e);
+        originIndex = [...notesList.children].indexOf(row);
+        row.classList.add('dragging');
+
+        placeholder = document.createElement('div');
+        placeholder.className = 'drag-placeholder';
+        notesList.insertBefore(placeholder, row.nextSibling);
+
+        row.style.position = 'relative';
+        row.style.zIndex = '1';
+        row.style.transform = 'translateY(0px)';
+
+        window.addEventListener('pointermove', onPointerMove, { passive: false });
+        window.addEventListener('pointerup', onPointerUp, { passive: false });
+        window.addEventListener('touchmove', onPointerMove, { passive: false });
+        window.addEventListener('touchend', onPointerUp, { passive: false });
+        window.addEventListener('mousemove', onPointerMove, { passive: false });
+        window.addEventListener('mouseup', onPointerUp, { passive: false });
+      };
+
+      const onPointerMove = (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        currentY = getY(e);
+        const dy = currentY - startY;
+        row.style.transform = `translateY(${dy}px)`;
+
+        const rowsArr = Array.from(notesList.querySelectorAll('.note-row')).filter(el => el !== row);
+        for (const r of rowsArr) {
+          const rect = r.getBoundingClientRect();
+          const middle = rect.top + rect.height / 2;
+          if (currentY < middle) {
+            notesList.insertBefore(placeholder, r);
+            break;
+          } else {
+            notesList.appendChild(placeholder);
+          }
+        }
+      };
+
+      const onPointerUp = (e) => {
+        if (!dragging) return;
+        dragging = false;
+        row.classList.remove('dragging');
+        row.style.position = '';
+        row.style.zIndex = '';
+        row.style.transform = '';
+
+        if (placeholder) {
+          notesList.insertBefore(row, placeholder);
+          placeholder.remove();
+          placeholder = null;
+        }
+
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('touchmove', onPointerMove);
+        window.removeEventListener('touchend', onPointerUp);
+        window.removeEventListener('mousemove', onPointerMove);
+        window.removeEventListener('mouseup', onPointerUp);
+      };
+
+      const getY = (e) => {
+        if (e.touches && e.touches.length) return e.touches[0].clientY;
+        if (e.changedTouches && e.changedTouches.length) return e.changedTouches[0].clientY;
+        return e.clientY ?? 0;
+        };
+
+      handle.addEventListener('mousedown', onPointerDown);
+      handle.addEventListener('touchstart', onPointerDown, { passive: false });
+      handle.addEventListener('pointerdown', onPointerDown);
+    }
 
     // helper: insert text at cursor in a textarea
     function insertTextAtCursorTextarea(ta, text) {
