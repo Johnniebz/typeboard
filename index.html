@@ -25,7 +25,7 @@
       appearance: none; -webkit-appearance: none;
       padding: 10px 12px; font-size: 16px;
       border-radius: 10px; border: 1px solid #ddd; background: #fff;
-      width: 180px;                 /* fixed width so it doesn’t resize */
+      width: 180px;                 /* fixed width */
     }
 
     .quickbar { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 8px; border-top: 1px solid #f6f6f6; border-bottom: 1px solid #f1f1f1; background: #fff; }
@@ -48,7 +48,8 @@
     /* Notes Manager — compact, collapsible, draggable */
     .note-row {
       display: grid;
-      grid-template-columns: 28px 1fr 24px;
+      /* handle | title | delete | chevron */
+      grid-template-columns: 28px 1fr auto 24px;
       align-items: center;
       gap: 10px;
       padding: 10px 8px;
@@ -63,6 +64,18 @@
     .handle { font-size: 18px; line-height: 1; user-select: none; cursor: grab; text-align: center; }
     .title { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .chev { font-size: 18px; text-align: center; user-select: none; }
+
+    /* inline delete button (visible even when collapsed) */
+    .delete-inline {
+      background: #fff;
+      border: 1px solid #ffd7d4;
+      color: #ff3b30;
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .delete-inline:active { background: #ffeceb; }
 
     .note-editor { display: none; grid-column: 1 / -1; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #eee; }
     .note-row.expanded .note-editor { display: block; }
@@ -200,7 +213,7 @@
 
     document.addEventListener('keydown',(e)=>{ if((e.metaKey||e.ctrlKey) && (e.key==='Backspace'||e.key==='Delete')){ e.preventDefault(); board.value=''; drawings.innerHTML=''; const rect=pad.getBoundingClientRect(); ctx.clearRect(0,0,rect.width,rect.height); dirty=false; } });
 
-    /* -------- Notes (compact + draggable) -------- */
+    /* -------- Notes (compact + draggable, inline delete) -------- */
     const NOTES_KEY='typeboard.notes', NOTES_TITLE_MAX=40;
     const notesDlg=document.getElementById('notesDlg');
     const notesList=document.getElementById('notesList');
@@ -225,7 +238,6 @@
     function openNotesManager(){
       notesList.innerHTML='';
       const arr=loadNotes();
-      // If empty: show nothing by default (no auto "Untitled" note)
       if(arr.length>0){ arr.forEach(n=>addNoteRow(n.title,n.body,false)); }
       notesDlg.showModal();
     }
@@ -235,6 +247,10 @@
 
       const handle=document.createElement('div'); handle.className='handle'; handle.textContent='☰'; handle.title='Drag to reorder';
       const titleSpan=document.createElement('div'); titleSpan.className='title'; titleSpan.textContent=title||'Untitled';
+
+      // inline delete (always visible)
+      const delInline=document.createElement('button'); delInline.type='button'; delInline.className='delete-inline'; delInline.textContent='Delete';
+
       const chev=document.createElement('div'); chev.className='chev'; chev.textContent='›';
 
       const editor=document.createElement('div'); editor.className='note-editor';
@@ -247,7 +263,7 @@
         <div class="actions"><span style="font-size:13px;color:#666;">Changes are saved with “Save Changes”.</span></div>
       `;
 
-      row.append(handle, titleSpan, chev, editor);
+      row.append(handle, titleSpan, delInline, chev, editor);
       notesList.appendChild(row);
 
       const titleInput=editor.querySelector('.title-input');
@@ -259,15 +275,18 @@
       titleSpan.addEventListener('click', toggleExpand);
       chev.addEventListener('click', toggleExpand);
 
+      // live title preview
       titleInput.addEventListener('input', (e)=>{ const t=e.target.value.trim(); titleSpan.textContent=t||'Untitled'; });
 
-      editor.querySelector('.delete-btn').addEventListener('click', ()=>{ row.remove(); });
+      // delete actions (both inline + inside editor)
+      const doDelete = () => { if (confirm('Delete this note?')) row.remove(); };
+      delInline.addEventListener('click', doDelete);
+      editor.querySelector('.delete-btn').addEventListener('click', doDelete);
 
       enableRowDrag(row, handle);
 
       if(autoExpand){
         row.classList.add('expanded'); chev.textContent='▾';
-        // Focus the TITLE (not body) for immediate naming
         setTimeout(()=>{ titleInput.focus(); titleInput.select(); }, 0);
       }
 
