@@ -27,6 +27,7 @@
   overflow-y: auto;     /* scroll inside here */
   padding: 8px;
   position: relative;
+  -webkit-overflow-scrolling: touch;
 }
 
     /* Sticky header (bar + quickbar) */
@@ -64,6 +65,22 @@
       color: #111;
     }
 
+    /* Notes controls */
+    .notes-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .notes-picker {
+      appearance: none;
+      -webkit-appearance: none;
+      padding: 10px 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      background: #fff;
+    }
+
     .quickbar {
       display: flex;
       gap: 8px;
@@ -95,11 +112,6 @@
       font-size: 14px;
     }
 
-    .area {
-      flex: 1;
-      padding: 8px;
-      position: relative;
-    }
     textarea {
       width: 100%;
       height: 100%;
@@ -117,7 +129,7 @@
     dialog {
       border: none;
       border-radius: 16px;
-      max-width: 560px;
+      max-width: 600px;
       width: calc(100% - 32px);
       padding: 0;
       overflow: hidden;
@@ -160,12 +172,49 @@
       margin-bottom: 10px;
     }
 
+    /* Notes Manager styles */
+    .note-card {
+      border: 1px solid #eee;
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+    .note-card .title-line {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .note-card .title-line input[type="text"] {
+      flex: 1;
+    }
+    .note-card textarea {
+      width: 100%;
+      min-height: 100px;
+      font-size: 15px;
+      line-height: 1.4;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+    .note-card .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      justify-content: flex-end;
+    }
+
     /* Drawing overlay + saved images */
     #pad {
       position: absolute;
-      inset: 8px;
-      width: calc(100% - 16px);
-      height: calc(100% - 16px);
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      /* top is set dynamically to sit under the caret if you add caret positioning */
+      width: auto;
+      height: auto;
       touch-action: none;
       border-radius: 6px;
       pointer-events: none;
@@ -189,7 +238,14 @@
           <button class="btn btn-large" id="smaller" type="button">A−</button>
           <button class="btn btn-large" id="toggleDraw" type="button" aria-pressed="false">Draw: Off</button>
         </div>
-        <button class="btn btn-clear" id="clear" type="button">CLEAR</button>
+
+        <div class="notes-controls">
+          <select id="notesPicker" class="notes-picker">
+            <option value="">Notes ▾</option>
+          </select>
+          <button class="btn btn-large" id="manageNotes" type="button">Manage Notes</button>
+          <button class="btn btn-clear" id="clear" type="button">CLEAR</button>
+        </div>
       </div>
 
       <div class="quickbar" id="quickbar">
@@ -205,6 +261,7 @@
     </div>
   </div>
 
+  <!-- Phrases dialog (existing) -->
   <dialog id="dlg">
     <div class="dlg-head">Quick Phrases</div>
     <div class="dlg-body">
@@ -216,6 +273,20 @@
       <button class="btn btn-sec" id="reset" type="button">Reset</button>
       <button class="btn btn-sec" id="cancel" type="button">Cancel</button>
       <button class="btn btn-clear" id="save" type="button">Save</button>
+    </div>
+  </dialog>
+
+  <!-- Notes Manager dialog (NEW) -->
+  <dialog id="notesDlg">
+    <div class="dlg-head">Notes</div>
+    <div class="dlg-body">
+      <div class="note">Create longer messages you can insert quickly. Titles are limited to 40 characters.</div>
+      <div id="notesList"></div>
+      <button class="btn btn-sec" id="addNote" type="button">+ Add note</button>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn btn-sec" id="notesCancel" type="button">Close</button>
+      <button class="btn btn-clear" id="notesSave" type="button">Save Changes</button>
     </div>
   </dialog>
 
@@ -233,6 +304,7 @@
     const save = document.getElementById('save');
     const reset = document.getElementById('reset');
 
+    /* -------- Phrases (existing) -------- */
     const DEFAULTS = [
       "Sí","No","No lo sé", "Perfecto", "Necesito", "Lavabo", "Gasas", "Me pasas", "Hoy", "Mañana"
     ];
@@ -316,6 +388,7 @@
 
     window.addEventListener('load', () => {
       renderChips();
+      renderNotesPicker();
       board.focus();
       sizeCanvas();
     });
@@ -373,7 +446,164 @@
       }
     });
 
-    // ===== Drawing logic (unchanged UX, now works with sticky header + clear-all) =====
+    /* -------- Notes (NEW) -------- */
+    const NOTES_KEY = 'typeboard.notes';
+    const NOTES_TITLE_MAX = 40;
+    const notesDlg = document.getElementById('notesDlg');
+    const notesList = document.getElementById('notesList');
+    const addNoteBtn = document.getElementById('addNote');
+    const notesCancel = document.getElementById('notesCancel');
+    const notesSave = document.getElementById('notesSave');
+    const notesPicker = document.getElementById('notesPicker');
+    const manageNotesBtn = document.getElementById('manageNotes');
+
+    function loadNotes() {
+      try {
+        const raw = localStorage.getItem(NOTES_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch(e) { return []; }
+    }
+    function saveNotes(arr) {
+      localStorage.setItem(NOTES_KEY, JSON.stringify(arr));
+    }
+
+    function renderNotesPicker() {
+      const arr = loadNotes();
+      // reset
+      notesPicker.innerHTML = '<option value="">Notes ▾</option>';
+      arr.forEach((n, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = n.title || `Note ${i+1}`;
+        notesPicker.appendChild(opt);
+      });
+    }
+
+    // Insert selected note at caret (append; preserves current text)
+    notesPicker.addEventListener('change', () => {
+      const idx = parseInt(notesPicker.value, 10);
+      const arr = loadNotes();
+      if (!isNaN(idx) && arr[idx]) {
+        insertTextAtCursorTextarea(board, (board.value && !board.value.endsWith('\n') ? '\n' : '') + arr[idx].body);
+        // move caret to end and refocus
+        board.selectionStart = board.selectionEnd = board.value.length;
+        board.focus();
+      }
+      // reset picker back to placeholder
+      notesPicker.value = '';
+    });
+
+    manageNotesBtn.addEventListener('click', () => {
+      openNotesManager();
+    });
+
+    function openNotesManager() {
+      notesList.innerHTML = '';
+      const arr = loadNotes();
+      arr.forEach((n, i) => addNoteCard(n.title, n.body));
+      if (arr.length === 0) addNoteCard('', '');
+      notesDlg.showModal();
+    }
+
+    function addNoteCard(title = '', body = '') {
+      const wrap = document.createElement('div');
+      wrap.className = 'note-card';
+
+      const titleLine = document.createElement('div');
+      titleLine.className = 'title-line';
+      const titleInput = document.createElement('input');
+      titleInput.type = 'text';
+      titleInput.placeholder = 'Note title (max 40 chars)';
+      titleInput.value = title.slice(0, NOTES_TITLE_MAX);
+      titleInput.maxLength = NOTES_TITLE_MAX;
+
+      const upBtn = document.createElement('button');
+      upBtn.type = 'button';
+      upBtn.className = 'btn btn-sec';
+      upBtn.textContent = 'Up';
+
+      const downBtn = document.createElement('button');
+      downBtn.type = 'button';
+      downBtn.className = 'btn btn-sec';
+      downBtn.textContent = 'Down';
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'btn btn-sec';
+      delBtn.textContent = 'Delete';
+
+      titleLine.appendChild(titleInput);
+      titleLine.appendChild(upBtn);
+      titleLine.appendChild(downBtn);
+      titleLine.appendChild(delBtn);
+
+      const bodyInput = document.createElement('textarea');
+      bodyInput.placeholder = 'Write your note text here...';
+      bodyInput.value = body;
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const insertBtn = document.createElement('button');
+      insertBtn.type = 'button';
+      insertBtn.className = 'btn btn-large';
+      insertBtn.textContent = 'Insert into typing area';
+      actions.appendChild(insertBtn);
+
+      wrap.appendChild(titleLine);
+      wrap.appendChild(bodyInput);
+      wrap.appendChild(actions);
+
+      // Handlers
+      delBtn.addEventListener('click', () => wrap.remove());
+
+      upBtn.addEventListener('click', () => {
+        const prev = wrap.previousElementSibling;
+        if (prev) wrap.parentNode.insertBefore(wrap, prev);
+      });
+      downBtn.addEventListener('click', () => {
+        const next = wrap.nextElementSibling;
+        if (next) wrap.parentNode.insertBefore(next, wrap);
+      });
+
+      insertBtn.addEventListener('click', () => {
+        // Insert body at caret in the main textarea, keep dialog open
+        insertTextAtCursorTextarea(board, (board.value && !/[\s\n]$/.test(board.value) ? '\n' : '') + bodyInput.value);
+        board.focus();
+      });
+
+      notesList.appendChild(wrap);
+    }
+
+    addNoteBtn.addEventListener('click', () => addNoteCard('', ''));
+
+    notesCancel.addEventListener('click', () => notesDlg.close());
+
+    notesSave.addEventListener('click', () => {
+      // Collect all cards into an array in their current order
+      const cards = Array.from(notesList.querySelectorAll('.note-card'));
+      const arr = cards.map(card => {
+        const t = card.querySelector('input[type="text"]').value.trim().slice(0, NOTES_TITLE_MAX);
+        const b = card.querySelector('textarea').value;
+        return { title: t || 'Untitled', body: b };
+      });
+      saveNotes(arr);
+      renderNotesPicker();
+      notesDlg.close();
+    });
+
+    // helper: insert text at cursor in a textarea
+    function insertTextAtCursorTextarea(ta, text) {
+      const start = ta.selectionStart ?? ta.value.length;
+      const end = ta.selectionEnd ?? ta.value.length;
+      const before = ta.value.slice(0, start);
+      const after = ta.value.slice(end);
+      ta.value = before + text + after;
+      const pos = before.length + text.length;
+      ta.selectionStart = ta.selectionEnd = pos;
+    }
+
+    /* -------- Drawing (existing) -------- */
     const drawings = document.getElementById('drawings');
     const pad = document.getElementById('pad');
     const ctx = pad.getContext('2d');
