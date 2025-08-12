@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Typeboard — Quick Phrases</title>
+  <title>Typeboard — Quick Phrases + Notes + Drawing + Board</title>
   <style>
     :root { --pad: 10px; }
     html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #ffffff; color: #111; }
@@ -116,6 +116,22 @@
       font-weight: 600;
       padding: 10px 12px;
     }
+
+    /* === AAC BOARD styles (scoped) === */
+    .aac { border:1px solid #eee; border-radius:12px; padding:8px; margin-bottom:8px; background:#fff; }
+    .aac .bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:6px; }
+    .aac .sentence { flex:1; min-height:44px; padding:10px 12px; border:1px solid #ddd; border-radius:10px; font-size:18px; background:#fafafa; }
+    .aac .btn { padding:10px 12px; border-radius:10px; border:1px solid #ddd; background:#f7f7fb; font-weight:600; }
+    .aac .tabs { display:flex; gap:6px; overflow-x:auto; padding:4px 0; }
+    .aac .tab { padding:8px 10px; border:1px solid #ddd; border-radius:10px; background:#fff; font-weight:600; white-space:nowrap; }
+    .aac .tab.active { background:#111; color:#fff; border-color:#111; }
+    .aac .grid { margin-top:8px; display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; }
+    .aac .tile { padding:12px; min-height:56px; border-radius:12px; border:1px solid #ddd; background:#fff; font-size:18px; font-weight:700; display:flex; align-items:center; justify-content:center; user-select:none; }
+    .aac .tile.green{ background:#eaffea; border-color:#bfe8bf; }
+    .aac .tile.blue{ background:#eaf2ff; border-color:#bfd0ff; }
+    .aac .tile.yellow{ background:#fff6d6; border-color:#ffe7a3; }
+    .aac .tile.orange{ background:#ffe9d9; border-color:#ffd0b3; }
+    .aac .manage { margin-top:8px; display:flex; gap:8px; }
   </style>
 </head>
 <body>
@@ -126,6 +142,7 @@
           <button class="btn btn-large" id="bigger" type="button">A+</button>
           <button class="btn btn-large" id="smaller" type="button">A−</button>
           <button class="btn btn-large" id="toggleDraw" type="button" aria-pressed="false">Draw: Off</button>
+          <button class="btn btn-large" id="toggleAACBtn" type="button">Board</button>
         </div>
 
         <div class="notes-controls">
@@ -142,6 +159,24 @@
     </div>
 
     <div class="area">
+      <!-- AAC Board sits above drawings and textarea -->
+      <div class="aac" id="aac" hidden>
+        <div class="bar">
+          <div class="sentence" id="aacSentence" aria-live="polite"></div>
+          <button class="btn" id="aacSpeak" type="button">🔊 Speak</button>
+          <button class="btn" id="aacBksp" type="button">⟵</button>
+          <button class="btn" id="aacClear" type="button">Clear</button>
+          <button class="btn" id="aacInsert" type="button">Insert</button>
+        </div>
+        <div class="tabs" id="aacTabs"></div>
+        <div class="grid" id="aacGrid"></div>
+        <div class="manage">
+          <button class="btn" id="aacManage" type="button">Manage Words</button>
+          <button class="btn" id="aacExport" type="button">Export</button>
+          <button class="btn" id="aacImport" type="button">Import</button>
+        </div>
+      </div>
+
       <div id="drawings"></div>
       <canvas id="pad"></canvas>
       <textarea id="board" placeholder="Type here…"></textarea>
@@ -192,7 +227,7 @@
     const reset = document.getElementById('reset');
 
     /* -------- Phrases (existing) -------- */
-    const DEFAULTS = ["Sí","No","No lo sé","Gracias"];
+    const DEFAULTS = ["Sí","No","No lo sé","Perfecto","Necesito","Lavabo","Gasas","Me pasas","Hoy","Mañana"];
 
     function loadPhrases(){ try{ const raw=localStorage.getItem('typeboard.phrases'); const arr=raw?JSON.parse(raw):DEFAULTS.slice(); return Array.isArray(arr)&&arr.length?arr.slice(0,20):DEFAULTS.slice(); }catch{ return DEFAULTS.slice(); } }
     function savePhrases(list){ localStorage.setItem('typeboard.phrases', JSON.stringify(list.filter(Boolean))); }
@@ -301,7 +336,7 @@
       chev.addEventListener('click', toggleExpand);
 
       // live title preview
-      titleInput.addEventListener('input', (e)=>{ const t=e.target.value.trim(); titleSpan.textContent=t||'Untitled'; });
+      titleInput.addEventListener('input', (e)=>{ const t=e.target.value.trim(); titleSpan.textContent=t||='Untitled'; });
 
       // delete action (inline only)
       const doDelete = () => { if (confirm('Delete this note?')) row.remove(); };
@@ -381,14 +416,6 @@
       handle.addEventListener('mousedown', onDown);
     }
 
-    /* helper: insert text at cursor in textarea */
-    function insertTextAtCursorTextarea(ta, text){
-      const start=ta.selectionStart ?? ta.value.length, end=ta.selectionEnd ?? ta.value.length;
-      const before=ta.value.slice(0,start), after=ta.value.slice(end);
-      ta.value = before + text + after;
-      const pos = (before + text).length; ta.selectionStart = ta.selectionEnd = pos;
-    }
-
     /* -------- Drawing (unchanged) -------- */
     const drawings=document.getElementById('drawings');
     const pad=document.getElementById('pad');
@@ -415,6 +442,66 @@
     pad.addEventListener('mouseup', endDraw);
     pad.addEventListener('mouseleave', endDraw);
     window.addEventListener('resize', sizeCanvas);
-  </script>
-</body>
-</html>
+
+    /* -------- AAC Word Board -------- */
+    const AAC_KEY = 'typeboard.aac';
+    const aacEl = document.getElementById('aac');
+    const aacSentence = document.getElementById('aacSentence');
+    const aacTabs = document.getElementById('aacTabs');
+    const aacGrid = document.getElementById('aacGrid');
+    const aacSpeak = document.getElementById('aacSpeak');
+    const aacBksp = document.getElementById('aacBksp');
+    const aacClear = document.getElementById('aacClear');
+    const aacInsert = document.getElementById('aacInsert');
+    const aacManage = document.getElementById('aacManage');
+    const aacExport = document.getElementById('aacExport');
+    const aacImport = document.getElementById('aacImport');
+    const toggleAACBtn = document.getElementById('toggleAACBtn');
+
+    function loadAAC(){
+      try { const raw = localStorage.getItem(AAC_KEY); if (raw) return JSON.parse(raw); } catch {}
+      // defaults
+      return {
+        version: 1,
+        settings: { gridCols: 6, lang: 'es-ES' },
+        core: [
+          {id:'si',label:'Sí',color:'orange'},
+          {id:'no',label:'No',color:'orange'},
+          {id:'quiero',label:'Quiero',pos:'verb',color:'green'},
+          {id:'necesito',label:'Necesito',pos:'verb',color:'green'},
+          {id:'esto',label:'Esto',pos:'pron',color:'blue'},
+          {id:'aqui',label:'Aquí',pos:'adv',color:'blue'},
+          {id:'ayuda',label:'Ayuda',pos:'noun',color:'blue'},
+          {id:'dolor',label:'Dolor',pos:'noun',color:'blue'},
+          {id:'hoy',label:'Hoy',color:'gray'},
+          {id:'manana',label:'Mañana',color:'gray'},
+          {id:'mas',label:'Más',color:'gray'},
+          {id:'menos',label:'Menos',color:'gray'}
+        ],
+        pages: [
+          { id:'hospital', title:'Hospital', tiles:[
+            {id:'enfermera',label:'Enfermera',color:'blue'},
+            {id:'doctor',label:'Doctor',color:'blue'},
+            {id:'gasas',label:'Gasas',color:'blue'},
+            {id:'lavabo',label:'Lavabo',color:'blue'}
+          ]},
+          { id:'sintomas', title:'Síntomas', tiles:[
+            {id:'fiebre',label:'Fiebre',color:'blue'},
+            {id:'nauseas',label:'Náuseas',color:'blue'},
+            {id:'mareo',label:'Mareo',color:'blue'}
+          ]}
+        ]
+      };
+    }
+    function saveAAC(state){ localStorage.setItem(AAC_KEY, JSON.stringify(state)); }
+
+    let AAC = loadAAC();
+    let aacActivePage = 'core';
+    let sentenceTokens = [];
+
+    function renderTabs(){
+      aacTabs.innerHTML = '';
+      const pages = [{id:'core',title:'Core'}, ...AAC.pages.map(p=>({id:p.id,title:p.title}))];
+      pages.forEach(p=>{
+        const b=document.createElement('button');
+        b.type='button'; b.className='tab' + (aacActivePage===p.id?' active':''); b.textContent=p.title;
