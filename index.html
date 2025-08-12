@@ -21,7 +21,12 @@
 
     /* Notes controls */
     .notes-controls { display: flex; gap: 8px; align-items: center; }
-    .notes-picker { appearance: none; -webkit-appearance: none; padding: 10px 12px; font-size: 16px; border-radius: 10px; border: 1px solid #ddd; background: #fff; }
+    .notes-picker {
+      appearance: none; -webkit-appearance: none;
+      padding: 10px 12px; font-size: 16px;
+      border-radius: 10px; border: 1px solid #ddd; background: #fff;
+      width: 180px;                 /* fixed width so it doesn’t resize */
+    }
 
     .quickbar { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 8px; border-top: 1px solid #f6f6f6; border-bottom: 1px solid #f1f1f1; background: #fff; }
     .chip { flex: 0 0 auto; padding: 10px 12px; border-radius: 20px; border: 1px solid #ddd; background: #fafafa; font-weight: 600; font-size: 16px; user-select: none; }
@@ -218,9 +223,10 @@
     manageNotesBtn.addEventListener('click', openNotesManager);
 
     function openNotesManager(){
-      notesList.innerHTML=''; const arr=loadNotes();
-      if(arr.length===0){ addNoteRow('','',true); }
-      else{ arr.forEach(n=>addNoteRow(n.title,n.body,false)); }
+      notesList.innerHTML='';
+      const arr=loadNotes();
+      // If empty: show nothing by default (no auto "Untitled" note)
+      if(arr.length>0){ arr.forEach(n=>addNoteRow(n.title,n.body,false)); }
       notesDlg.showModal();
     }
 
@@ -249,7 +255,7 @@
       titleInput.value = title.slice(0,NOTES_TITLE_MAX);
       bodyInput.value = body;
 
-      function toggleExpand(){ const exp=row.classList.toggle('expanded'); chev.textContent = exp ? '▾' : '›'; if(exp){ titleInput.focus(); } }
+      function toggleExpand(){ const exp=row.classList.toggle('expanded'); chev.textContent = exp ? '▾' : '›'; if(exp){ titleInput.focus(); titleInput.select(); } }
       titleSpan.addEventListener('click', toggleExpand);
       chev.addEventListener('click', toggleExpand);
 
@@ -259,9 +265,12 @@
 
       enableRowDrag(row, handle);
 
-      if(autoExpand){ row.classList.add('expanded'); chev.textContent='▾'; setTimeout(()=>bodyInput.focus(), 0); }
+      if(autoExpand){
+        row.classList.add('expanded'); chev.textContent='▾';
+        // Focus the TITLE (not body) for immediate naming
+        setTimeout(()=>{ titleInput.focus(); titleInput.select(); }, 0);
+      }
 
-      // Ensure editor spans full width in grid
       editor.style.gridColumn = '1 / -1';
     }
 
@@ -279,14 +288,13 @@
 
     /* Drag & drop for rows (pointer/touch/mouse) */
     function enableRowDrag(row, handle){
-      let dragging=false, startY=0, currentY=0, placeholder=null, startRect=null;
+      let dragging=false, startY=0, currentY=0, placeholder=null;
 
       const onDown=(e)=>{
         e.preventDefault();
         dragging=true; startY=getY(e);
-        startRect=row.getBoundingClientRect();
         row.classList.add('dragging');
-        placeholder=document.createElement('div'); placeholder.className='drag-placeholder'; placeholder.style.height = startRect.height+'px';
+        placeholder=document.createElement('div'); placeholder.className='drag-placeholder'; placeholder.style.height = row.getBoundingClientRect().height+'px';
         notesList.insertBefore(placeholder, row.nextSibling);
         row.style.position='relative'; row.style.zIndex='1'; row.style.transform='translateY(0px)';
 
