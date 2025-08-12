@@ -8,151 +8,39 @@
   <title>Typeboard — Quick Phrases</title>
   <style>
     :root { --pad: 10px; }
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      background: #ffffff;
-      color: #111;
-    }
-.wrap {
-  height: 100svh;       /* force full screen height */
-  display: flex;
-  flex-direction: column;
-}
-
-.area {
-  flex: 1;              /* fill all remaining height under header */
-  overflow-y: auto;     /* scroll inside here */
-  padding: 8px;
-  position: relative;
-  -webkit-overflow-scrolling: touch;
-}
+    html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #ffffff; color: #111; }
+    .wrap { height: 100svh; display: flex; flex-direction: column; }
+    .area { flex: 1; overflow-y: auto; padding: 8px; position: relative; -webkit-overflow-scrolling: touch; }
 
     /* Sticky header (bar + quickbar) */
-    .header {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: #fff;
-      border-bottom: 1px solid #eee;
-    }
-
-    .bar {
-      padding: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-    .btn {
-      padding: 10px 14px;
-      font-size: 18px;
-      font-weight: 600;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      -webkit-tap-highlight-color: rgba(0,0,0,0);
-    }
-    .btn-clear {
-      background: #ff3b30;
-      color: #fff;
-      font-weight: 700;
-    }
-    .btn-large {
-      background: #f2f2f7;
-      color: #111;
-    }
+    .header { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #eee; }
+    .bar { padding: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .btn { padding: 10px 14px; font-size: 18px; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: rgba(0,0,0,0); }
+    .btn-clear { background: #ff3b30; color: #fff; font-weight: 700; }
+    .btn-large { background: #f2f2f7; color: #111; }
 
     /* Notes controls */
-    .notes-controls {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .notes-picker {
-      appearance: none;
-      -webkit-appearance: none;
-      padding: 10px 12px;
-      font-size: 16px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      background: #fff;
-    }
+    .notes-controls { display: flex; gap: 8px; align-items: center; }
+    .notes-picker { appearance: none; -webkit-appearance: none; padding: 10px 12px; font-size: 16px; border-radius: 10px; border: 1px solid #ddd; background: #fff; }
 
-    .quickbar {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 8px;
-      border-top: 1px solid #f6f6f6;
-      border-bottom: 1px solid #f1f1f1;
-      background: #fff;
-    }
-    .chip {
-      flex: 0 0 auto;
-      padding: 10px 12px;
-      border-radius: 20px;
-      border: 1px solid #ddd;
-      background: #fafafa;
-      font-weight: 600;
-      font-size: 16px;
-      user-select: none;
-    }
+    .quickbar { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 8px; border-top: 1px solid #f6f6f6; border-bottom: 1px solid #f1f1f1; background: #fff; }
+    .chip { flex: 0 0 auto; padding: 10px 12px; border-radius: 20px; border: 1px solid #ddd; background: #fafafa; font-weight: 600; font-size: 16px; user-select: none; }
     .chip:active { background: #f0f0f0; }
-    .edit-phrases {
-      margin-left: auto;
-      padding: 8px 12px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      background: #fff;
-      font-weight: 600;
-      font-size: 14px;
-    }
+    .edit-phrases { margin-left: auto; padding: 8px 12px; border-radius: 10px; border: 1px solid #ddd; background: #fff; font-weight: 600; font-size: 14px; }
 
-    .area textarea {
-      width: 100%;
-      height: 100%;
-      box-sizing: border-box;
-      border: none;
-      outline: none;
-      resize: none;
-      font-size: 28px;
-      line-height: 1.4;
-      -webkit-appearance: none;
-    }
+    /* Text area */
+    textarea { width: 100%; height: 100%; box-sizing: border-box; border: none; outline: none; resize: none; font-size: 28px; line-height: 1.4; -webkit-appearance: none; }
 
-    /* Dialog */
+    /* Dialog base */
     dialog::backdrop { background: rgba(0,0,0,0.35); }
-    dialog {
-      border: none;
-      border-radius: 16px;
-      max-width: 600px;
-      width: calc(100% - 32px);
-      padding: 0;
-      overflow: hidden;
-    }
-    .dlg-head {
-      padding: 14px 16px;
-      font-weight: 700;
-      border-bottom: 1px solid #eee;
-      background: #fafafa;
-    }
+    dialog { border: none; border-radius: 16px; max-width: 640px; width: calc(100% - 32px); padding: 0; overflow: hidden; }
+    .dlg-head { padding: 14px 16px; font-weight: 700; border-bottom: 1px solid #eee; background: #fafafa; }
     .dlg-body { padding: 12px 16px; max-height: 60vh; overflow: auto; }
-    .dlg-foot {
-      display: flex;
-      gap: 10px;
-      padding: 12px 16px;
-      border-top: 1px solid #eee;
-      justify-content: flex-end;
-      background: #fafafa;
-    }
+    .dlg-foot { display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid #eee; justify-content: flex-end; background: #fafafa; }
     .btn-sec { background: #f2f2f7; color: #111; }
     .note { font-size: 13px; color: #666; margin-bottom: 10px; }
 
-    /* Notes Manager — compact, draggable rows */
+    /* Notes Manager — compact, collapsible, draggable */
     .note-row {
       display: grid;
       grid-template-columns: 28px 1fr 24px;
@@ -163,78 +51,27 @@
       border-radius: 12px;
       background: #fff;
       margin-bottom: 8px;
+      position: relative;
       touch-action: pan-y;
     }
-    .note-row.dragging {
-      opacity: 0.85;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-    }
-    .note-row .handle {
-      font-size: 18px;
-      line-height: 1;
-      user-select: none;
-      cursor: grab;
-      text-align: center;
-    }
-    .note-row .title {
-      font-weight: 600;
-      font-size: 16px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .note-row .chev {
-      font-size: 18px;
-      text-align: center;
-      user-select: none;
-    }
-    .note-editor {
-      display: none;
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px dashed #eee;
-    }
+    .note-row.dragging { opacity: 0.9; box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+    .handle { font-size: 18px; line-height: 1; user-select: none; cursor: grab; text-align: center; }
+    .title { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chev { font-size: 18px; text-align: center; user-select: none; }
+
+    .note-editor { display: none; grid-column: 1 / -1; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #eee; }
     .note-row.expanded .note-editor { display: block; }
-    .note-editor .row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .note-editor input[type="text"] {
-      flex: 1; padding: 10px 12px; font-size: 15px; border: 1px solid #ddd; border-radius: 10px;
-    }
-    .note-editor textarea {
-      width: 100%; min-height: 120px; font-size: 15px; line-height: 1.4;
-      border: 1px solid #ddd; border-radius: 10px; padding: 8px 10px; box-sizing: border-box;
-    }
-    .note-editor .actions {
-      display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;
-    }
-    .drag-placeholder {
-      height: 56px;
-      border: 2px dashed #cfcfcf;
-      border-radius: 12px;
-      margin: 8px 0;
-    }
+
+    .note-editor .row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .note-editor input[type="text"] { flex: 1; padding: 10px 12px; font-size: 15px; border: 1px solid #ddd; border-radius: 10px; }
+    .note-editor textarea { width: 100%; min-height: 140px; font-size: 15px; line-height: 1.4; border: 1px solid #ddd; border-radius: 10px; padding: 8px 10px; box-sizing: border-box; }
+    .note-editor .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+    .drag-placeholder { height: 58px; border: 2px dashed #cfcfcf; border-radius: 12px; margin: 8px 0; }
 
     /* Drawing overlay + saved images */
-    #pad {
-      position: absolute;
-      inset: 8px;
-      width: calc(100% - 16px);
-      height: calc(100% - 16px);
-      touch-action: none;
-      border-radius: 6px;
-      pointer-events: none;
-    }
+    #pad { position: absolute; inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px); touch-action: none; border-radius: 6px; pointer-events: none; }
     .drawing-active #pad { pointer-events: auto; }
-    #drawings img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-      margin: 4px 0;
-      border-radius: 6px;
-    }
+    #drawings img { max-width: 100%; height: auto; display: block; margin: 4px 0; border-radius: 6px; }
   </style>
 </head>
 <body>
@@ -248,9 +85,7 @@
         </div>
 
         <div class="notes-controls">
-          <select id="notesPicker" class="notes-picker">
-            <option value="">Notes ▾</option>
-          </select>
+          <select id="notesPicker" class="notes-picker"><option value="">Notes ▾</option></select>
           <button class="btn btn-large" id="manageNotes" type="button">Manage Notes</button>
           <button class="btn btn-clear" id="clear" type="button">CLEAR</button>
         </div>
@@ -269,7 +104,7 @@
     </div>
   </div>
 
-  <!-- Phrases dialog (existing) -->
+  <!-- Phrases dialog -->
   <dialog id="dlg">
     <div class="dlg-head">Quick Phrases</div>
     <div class="dlg-body">
@@ -284,11 +119,11 @@
     </div>
   </dialog>
 
-  <!-- Notes Manager dialog (NEW, compact + draggable) -->
+  <!-- Notes Manager dialog (compact + draggable) -->
   <dialog id="notesDlg">
     <div class="dlg-head">Notes</div>
     <div class="dlg-body">
-      <div class="note">Tap a note to edit. Drag the <span style="font-weight:700;">☰</span> handle to reorder. Titles max 40 chars.</div>
+      <div class="note">Tap a note to edit. Drag the <b>☰</b> handle to reorder. Titles max 40 chars.</div>
       <div id="notesList"></div>
       <button class="btn btn-sec" id="addNote" type="button">+ Add note</button>
     </div>
@@ -313,492 +148,219 @@
     const reset = document.getElementById('reset');
 
     /* -------- Phrases (existing) -------- */
-    const DEFAULTS = [
-      "Sí","No","No lo sé", "Perfecto", "Necesito", "Lavabo", "Gasas", "Me pasas", "Hoy", "Mañana"
-    ];
+    const DEFAULTS = ["Sí","No","No lo sé","Perfecto","Necesito","Lavabo","Gasas","Me pasas","Hoy","Mañana"];
 
-    function loadPhrases() {
-      try {
-        const raw = localStorage.getItem('typeboard.phrases');
-        const arr = raw ? JSON.parse(raw) : DEFAULTS.slice();
-        if (!Array.isArray(arr) || arr.length === 0) return DEFAULTS.slice();
-        return arr.slice(0, 20);
-      } catch(e) {
-        return DEFAULTS.slice();
-      }
-    }
-    function savePhrases(list) {
-      localStorage.setItem('typeboard.phrases', JSON.stringify(list.filter(Boolean)));
-    }
+    function loadPhrases(){ try{ const raw=localStorage.getItem('typeboard.phrases'); const arr=raw?JSON.parse(raw):DEFAULTS.slice(); return Array.isArray(arr)&&arr.length?arr.slice(0,20):DEFAULTS.slice(); }catch{ return DEFAULTS.slice(); } }
+    function savePhrases(list){ localStorage.setItem('typeboard.phrases', JSON.stringify(list.filter(Boolean))); }
 
-    function renderChips() {
+    function renderChips(){
       const list = loadPhrases();
-      quickbar.querySelectorAll('.chip').forEach(c => c.remove());
+      quickbar.querySelectorAll('.chip').forEach(c=>c.remove());
       const edit = editBtn;
-      list.forEach((txt, idx) => {
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'chip';
-        chip.textContent = txt;
-        chip.addEventListener('click', () => {
+      list.forEach((txt, idx)=>{
+        const chip=document.createElement('button');
+        chip.type='button'; chip.className='chip'; chip.textContent=txt;
+        chip.addEventListener('click',()=>{
           const needsSpace = board.value && !board.value.endsWith(' ');
           board.value = (board.value || '') + (needsSpace ? ' ' : '') + txt;
           board.focus();
           board.selectionStart = board.selectionEnd = board.value.length;
         });
-        chip.addEventListener('dblclick', (e) => {
-          e.preventDefault();
-          board.value = txt;
-          board.focus();
-        });
+        chip.addEventListener('dblclick',(e)=>{ e.preventDefault(); board.value = txt; board.focus(); });
         let pressTimer;
-        chip.addEventListener('touchstart', () => {
-          pressTimer = setTimeout(() => {
-            const newTxt = prompt('Edit phrase:', txt);
-            if (newTxt !== null) {
-              const list2 = loadPhrases();
-              list2[idx] = newTxt.trim();
-              savePhrases(list2);
-              renderChips();
-            }
-          }, 550);
-        });
-        chip.addEventListener('touchend', () => clearTimeout(pressTimer));
-        chip.addEventListener('touchmove', () => clearTimeout(pressTimer));
+        chip.addEventListener('touchstart',()=>{ pressTimer=setTimeout(()=>{ const newTxt=prompt('Edit phrase:', txt); if(newTxt!==null){ const list2=loadPhrases(); list2[idx]=newTxt.trim(); savePhrases(list2); renderChips(); } },550); });
+        chip.addEventListener('touchend',()=>clearTimeout(pressTimer));
+        chip.addEventListener('touchmove',()=>clearTimeout(pressTimer));
         quickbar.insertBefore(chip, edit);
       });
     }
 
-    function openEditor() {
-      rows.innerHTML = '';
-      const list = loadPhrases();
-      list.forEach((txt) => addEditorRow(txt));
-      if (list.length === 0) addEditorRow('');
-      dlg.showModal();
-    }
+    function openEditor(){ rows.innerHTML=''; const list=loadPhrases(); list.forEach(txt=>addEditorRow(txt)); if(list.length===0) addEditorRow(''); dlg.showModal(); }
+    function addEditorRow(val=''){ const row=document.createElement('div'); row.className='row'; const input=document.createElement('input'); input.type='text'; input.placeholder='Phrase'; input.value=val; const del=document.createElement('button'); del.type='button'; del.textContent='Delete'; del.className='btn btn-sec'; del.addEventListener('click',()=>row.remove()); row.appendChild(input); row.appendChild(del); rows.appendChild(row); }
 
-    function addEditorRow(val='') {
-      const row = document.createElement('div');
-      row.className = 'row';
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = 'Phrase';
-      input.value = val;
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.textContent = 'Delete';
-      del.className = 'btn btn-sec';
-      del.addEventListener('click', () => row.remove());
-      row.appendChild(input);
-      row.appendChild(del);
-      rows.appendChild(row);
-    }
+    window.addEventListener('load', ()=>{ renderChips(); renderNotesPicker(); board.focus(); sizeCanvas(); });
 
-    window.addEventListener('load', () => {
-      renderChips();
-      renderNotesPicker();
-      board.focus();
-      sizeCanvas();
-    });
+    /* CLEAR everything */
+    clearBtn.addEventListener('click', ()=>{ board.value=''; drawings.innerHTML=''; const rect=pad.getBoundingClientRect(); ctx.clearRect(0,0,rect.width,rect.height); dirty=false; board.focus(); });
 
-    // CLEAR now wipes text, saved drawings, and any unsaved sketch
-    clearBtn.addEventListener('click', () => {
-      board.value = '';
-      drawings.innerHTML = '';
-      const rect = pad.getBoundingClientRect();
-      ctx.clearRect(0,0, rect.width, rect.height);
-      dirty = false;
-      board.focus();
-    });
-
-    function getSize() {
-      const s = window.getComputedStyle(board).fontSize;
-      return parseFloat(s || '28');
-    }
-    bigger.addEventListener('click', () => {
-      board.style.fontSize = Math.min(getSize() + 4, 72) + 'px';
-      board.focus();
-    });
-    smaller.addEventListener('click', () => {
-      board.style.fontSize = Math.max(getSize() - 4, 14) + 'px';
-      board.focus();
-    });
+    function getSize(){ const s=window.getComputedStyle(board).fontSize; return parseFloat(s||'28'); }
+    bigger.addEventListener('click', ()=>{ board.style.fontSize = Math.min(getSize()+4, 72)+'px'; board.focus(); });
+    smaller.addEventListener('click', ()=>{ board.style.fontSize = Math.max(getSize()-4, 14)+'px'; board.focus(); });
 
     editBtn.addEventListener('click', openEditor);
-    addRow.addEventListener('click', () => addEditorRow(''));
-    cancel.addEventListener('click', () => dlg.close());
-    reset.addEventListener('click', () => {
-      if (confirm('Reset phrases to defaults?')) {
-        savePhrases(DEFAULTS.slice());
-        renderChips();
-        dlg.close();
-      }
-    });
-    save.addEventListener('click', () => {
-      const inputs = Array.from(rows.querySelectorAll('input[type="text"]'));
-      const list = inputs.map(i => i.value.trim()).filter(Boolean);
-      savePhrases(list);
-      renderChips();
-      dlg.close();
-    });
+    addRow.addEventListener('click', ()=>addEditorRow(''));
+    cancel.addEventListener('click', ()=>dlg.close());
+    reset.addEventListener('click', ()=>{ if(confirm('Reset phrases to defaults?')){ savePhrases(DEFAULTS.slice()); renderChips(); dlg.close(); } });
+    save.addEventListener('click', ()=>{ const inputs=[...rows.querySelectorAll('input[type="text"]')]; const list=inputs.map(i=>i.value.trim()).filter(Boolean); savePhrases(list); renderChips(); dlg.close(); });
 
-    // Keyboard shortcut: Cmd/Ctrl + Backspace to clear EVERYTHING
-    document.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'Backspace' || e.key === 'Delete')) {
-        e.preventDefault();
-        board.value = '';
-        drawings.innerHTML = '';
-        const rect = pad.getBoundingClientRect();
-        ctx.clearRect(0,0, rect.width, rect.height);
-        dirty = false;
-      }
-    });
+    document.addEventListener('keydown',(e)=>{ if((e.metaKey||e.ctrlKey) && (e.key==='Backspace'||e.key==='Delete')){ e.preventDefault(); board.value=''; drawings.innerHTML=''; const rect=pad.getBoundingClientRect(); ctx.clearRect(0,0,rect.width,rect.height); dirty=false; } });
 
-    /* -------- Notes (NEW compact + draggable) -------- */
-    const NOTES_KEY = 'typeboard.notes';
-    const NOTES_TITLE_MAX = 40;
-    const notesDlg = document.getElementById('notesDlg');
-    const notesList = document.getElementById('notesList');
-    const addNoteBtn = document.getElementById('addNote');
-    const notesCancel = document.getElementById('notesCancel');
-    const notesSave = document.getElementById('notesSave');
-    const notesPicker = document.getElementById('notesPicker');
-    const manageNotesBtn = document.getElementById('manageNotes');
+    /* -------- Notes (compact + draggable) -------- */
+    const NOTES_KEY='typeboard.notes', NOTES_TITLE_MAX=40;
+    const notesDlg=document.getElementById('notesDlg');
+    const notesList=document.getElementById('notesList');
+    const addNoteBtn=document.getElementById('addNote');
+    const notesCancel=document.getElementById('notesCancel');
+    const notesSave=document.getElementById('notesSave');
+    const notesPicker=document.getElementById('notesPicker');
+    const manageNotesBtn=document.getElementById('manageNotes');
 
-    function loadNotes() {
-      try {
-        const raw = localStorage.getItem(NOTES_KEY);
-        const arr = raw ? JSON.parse(raw) : [];
-        return Array.isArray(arr) ? arr : [];
-      } catch(e) { return []; }
-    }
-    function saveNotes(arr) {
-      localStorage.setItem(NOTES_KEY, JSON.stringify(arr));
-    }
+    function loadNotes(){ try{ const raw=localStorage.getItem(NOTES_KEY); const arr=raw?JSON.parse(raw):[]; return Array.isArray(arr)?arr:[]; }catch{ return []; } }
+    function saveNotes(arr){ localStorage.setItem(NOTES_KEY, JSON.stringify(arr)); }
+    function renderNotesPicker(){ const arr=loadNotes(); notesPicker.innerHTML='<option value="">Notes ▾</option>'; arr.forEach((n,i)=>{ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=n.title||`Note ${i+1}`; notesPicker.appendChild(opt); }); }
 
-    function renderNotesPicker() {
-      const arr = loadNotes();
-      notesPicker.innerHTML = '<option value="">Notes ▾</option>';
-      arr.forEach((n, i) => {
-        const opt = document.createElement('option');
-        opt.value = String(i);
-        opt.textContent = n.title || `Note ${i+1}`;
-        notesPicker.appendChild(opt);
-      });
-    }
-
-    // Insert selected note at caret (append; preserves current text)
-    notesPicker.addEventListener('change', () => {
-      const idx = parseInt(notesPicker.value, 10);
-      const arr = loadNotes();
-      if (!isNaN(idx) && arr[idx]) {
-        insertTextAtCursorTextarea(board, (board.value && !board.value.endsWith('\n') ? '\n' : '') + arr[idx].body);
-        board.selectionStart = board.selectionEnd = board.value.length;
-        board.focus();
-      }
-      notesPicker.value = '';
+    notesPicker.addEventListener('change', ()=>{
+      const idx=parseInt(notesPicker.value,10); const arr=loadNotes();
+      if(!isNaN(idx) && arr[idx]){ const prefix=(board.value && !board.value.endsWith('\n'))?'\n':''; board.setRangeText(prefix+arr[idx].body, board.selectionStart??board.value.length, board.selectionEnd??board.value.length, 'end'); board.focus(); }
+      notesPicker.value='';
     });
 
     manageNotesBtn.addEventListener('click', openNotesManager);
 
-    function openNotesManager() {
-      notesList.innerHTML = '';
-      const arr = loadNotes();
-      arr.forEach(n => addNoteRow(n.title, n.body));
-      if (arr.length === 0) addNoteRow('', '');
+    function openNotesManager(){
+      notesList.innerHTML=''; const arr=loadNotes();
+      if(arr.length===0){ addNoteRow('','',true); }
+      else{ arr.forEach(n=>addNoteRow(n.title,n.body,false)); }
       notesDlg.showModal();
     }
 
-    function addNoteRow(title = '', body = '') {
-      const row = document.createElement('div');
-      row.className = 'note-row';
-      row.setAttribute('data-title', title);
+    function addNoteRow(title='', body='', autoExpand=false){
+      const row=document.createElement('div'); row.className='note-row'; row.setAttribute('data-title',title);
 
-      // Handle (drag)
-      const handle = document.createElement('div');
-      handle.className = 'handle';
-      handle.textContent = '☰';
-      handle.title = 'Drag to reorder';
+      const handle=document.createElement('div'); handle.className='handle'; handle.textContent='☰'; handle.title='Drag to reorder';
+      const titleSpan=document.createElement('div'); titleSpan.className='title'; titleSpan.textContent=title||'Untitled';
+      const chev=document.createElement('div'); chev.className='chev'; chev.textContent='›';
 
-      // Title display
-      const titleSpan = document.createElement('div');
-      titleSpan.className = 'title';
-      titleSpan.textContent = title || 'Untitled';
-
-      // Chevron
-      const chev = document.createElement('div');
-      chev.className = 'chev';
-      chev.textContent = '›';
-
-      // Editor (collapsed by default)
-      const editor = document.createElement('div');
-      editor.className = 'note-editor';
+      const editor=document.createElement('div'); editor.className='note-editor';
       editor.innerHTML = `
         <div class="row">
           <input type="text" class="title-input" placeholder="Note title (max ${NOTES_TITLE_MAX} chars)" maxlength="${NOTES_TITLE_MAX}">
           <button class="btn btn-sec delete-btn" type="button">Delete</button>
         </div>
         <textarea class="body-input" placeholder="Write your note text here..."></textarea>
-        <div class="actions">
-          <span style="font-size:13px;color:#666;">Changes are saved when you press “Save Changes”.</span>
-        </div>
+        <div class="actions"><span style="font-size:13px;color:#666;">Changes are saved with “Save Changes”.</span></div>
       `;
-      row.appendChild(handle);
-      row.appendChild(titleSpan);
-      row.appendChild(chev);
-      row.appendChild(editor);
 
-      // Populate
-      editor.querySelector('.title-input').value = title.slice(0, NOTES_TITLE_MAX);
-      editor.querySelector('.body-input').value = body;
+      row.append(handle, titleSpan, chev, editor);
+      notesList.appendChild(row);
 
-      // Expand/collapse
-      function toggleExpand() {
-        const expanded = row.classList.toggle('expanded');
-        chev.textContent = expanded ? '▾' : '›';
-      }
+      const titleInput=editor.querySelector('.title-input');
+      const bodyInput=editor.querySelector('.body-input');
+      titleInput.value = title.slice(0,NOTES_TITLE_MAX);
+      bodyInput.value = body;
+
+      function toggleExpand(){ const exp=row.classList.toggle('expanded'); chev.textContent = exp ? '▾' : '›'; if(exp){ titleInput.focus(); } }
       titleSpan.addEventListener('click', toggleExpand);
       chev.addEventListener('click', toggleExpand);
 
-      // Title live preview
-      editor.querySelector('.title-input').addEventListener('input', (e) => {
-        const t = e.target.value.trim();
-        titleSpan.textContent = t || 'Untitled';
-      });
+      titleInput.addEventListener('input', (e)=>{ const t=e.target.value.trim(); titleSpan.textContent=t||'Untitled'; });
 
-      // Delete
-      editor.querySelector('.delete-btn').addEventListener('click', () => {
-        row.remove();
-      });
+      editor.querySelector('.delete-btn').addEventListener('click', ()=>{ row.remove(); });
 
-      // Drag & drop (touch-friendly)
       enableRowDrag(row, handle);
 
-      notesList.appendChild(row);
+      if(autoExpand){ row.classList.add('expanded'); chev.textContent='▾'; setTimeout(()=>bodyInput.focus(), 0); }
+
+      // Ensure editor spans full width in grid
+      editor.style.gridColumn = '1 / -1';
     }
 
-    addNoteBtn.addEventListener('click', () => addNoteRow('', ''));
-
-    notesCancel.addEventListener('click', () => notesDlg.close());
-
-    notesSave.addEventListener('click', () => {
-      // Collect rows in DOM order
-      const rowsDom = Array.from(notesList.querySelectorAll('.note-row'));
-      const arr = rowsDom.map(r => {
-        const t = r.querySelector('.title-input')?.value.trim().slice(0, NOTES_TITLE_MAX) || (r.getAttribute('data-title') || '').slice(0, NOTES_TITLE_MAX);
-        const b = r.querySelector('.body-input')?.value || '';
+    addNoteBtn.addEventListener('click', ()=> addNoteRow('', '', true));
+    notesCancel.addEventListener('click', ()=> notesDlg.close());
+    notesSave.addEventListener('click', ()=>{
+      const rowsDom=[...notesList.querySelectorAll('.note-row')];
+      const arr=rowsDom.map(r=>{
+        const t=(r.querySelector('.title-input')?.value.trim() || r.getAttribute('data-title') || '').slice(0,NOTES_TITLE_MAX);
+        const b=r.querySelector('.body-input')?.value || '';
         return { title: t || 'Untitled', body: b };
       });
-      saveNotes(arr);
-      renderNotesPicker();
-      notesDlg.close();
+      saveNotes(arr); renderNotesPicker(); notesDlg.close();
     });
 
-    // Drag/Drop helpers (works with mouse + touch/pointer)
-    function enableRowDrag(row, handle) {
-      let dragging = false;
-      let startY = 0;
-      let currentY = 0;
-      let placeholder = null;
-      let originIndex = -1;
+    /* Drag & drop for rows (pointer/touch/mouse) */
+    function enableRowDrag(row, handle){
+      let dragging=false, startY=0, currentY=0, placeholder=null, startRect=null;
 
-      const onPointerDown = (e) => {
+      const onDown=(e)=>{
         e.preventDefault();
-        dragging = true;
-        startY = getY(e);
-        originIndex = [...notesList.children].indexOf(row);
+        dragging=true; startY=getY(e);
+        startRect=row.getBoundingClientRect();
         row.classList.add('dragging');
-
-        placeholder = document.createElement('div');
-        placeholder.className = 'drag-placeholder';
+        placeholder=document.createElement('div'); placeholder.className='drag-placeholder'; placeholder.style.height = startRect.height+'px';
         notesList.insertBefore(placeholder, row.nextSibling);
+        row.style.position='relative'; row.style.zIndex='1'; row.style.transform='translateY(0px)';
 
-        row.style.position = 'relative';
-        row.style.zIndex = '1';
-        row.style.transform = 'translateY(0px)';
-
-        window.addEventListener('pointermove', onPointerMove, { passive: false });
-        window.addEventListener('pointerup', onPointerUp, { passive: false });
-        window.addEventListener('touchmove', onPointerMove, { passive: false });
-        window.addEventListener('touchend', onPointerUp, { passive: false });
-        window.addEventListener('mousemove', onPointerMove, { passive: false });
-        window.addEventListener('mouseup', onPointerUp, { passive: false });
+        window.addEventListener('pointermove', onMove, {passive:false});
+        window.addEventListener('pointerup', onUp, {passive:false});
+        window.addEventListener('touchmove', onMove, {passive:false});
+        window.addEventListener('touchend', onUp, {passive:false});
+        window.addEventListener('mousemove', onMove, {passive:false});
+        window.addEventListener('mouseup', onUp, {passive:false});
       };
 
-      const onPointerMove = (e) => {
-        if (!dragging) return;
-        e.preventDefault();
-        currentY = getY(e);
-        const dy = currentY - startY;
-        row.style.transform = `translateY(${dy}px)`;
-
-        const rowsArr = Array.from(notesList.querySelectorAll('.note-row')).filter(el => el !== row);
-        for (const r of rowsArr) {
-          const rect = r.getBoundingClientRect();
-          const middle = rect.top + rect.height / 2;
-          if (currentY < middle) {
-            notesList.insertBefore(placeholder, r);
-            break;
-          } else {
-            notesList.appendChild(placeholder);
-          }
+      const onMove=(e)=>{
+        if(!dragging) return; e.preventDefault();
+        currentY=getY(e); const dy=currentY-startY; row.style.transform=`translateY(${dy}px)`;
+        const rowsArr=[...notesList.querySelectorAll('.note-row')].filter(el=>el!==row);
+        let placed=false;
+        for(const r of rowsArr){
+          const rect=r.getBoundingClientRect();
+          if(currentY < rect.top + rect.height/2){ notesList.insertBefore(placeholder, r); placed=true; break; }
         }
+        if(!placed) notesList.appendChild(placeholder);
       };
 
-      const onPointerUp = (e) => {
-        if (!dragging) return;
-        dragging = false;
-        row.classList.remove('dragging');
-        row.style.position = '';
-        row.style.zIndex = '';
-        row.style.transform = '';
+      const onUp=()=>{
+        if(!dragging) return; dragging=false;
+        row.classList.remove('dragging'); row.style.position=''; row.style.zIndex=''; row.style.transform='';
+        if(placeholder){ notesList.insertBefore(row, placeholder); placeholder.remove(); placeholder=null; }
 
-        if (placeholder) {
-          notesList.insertBefore(row, placeholder);
-          placeholder.remove();
-          placeholder = null;
-        }
-
-        window.removeEventListener('pointermove', onPointerMove);
-        window.removeEventListener('pointerup', onPointerUp);
-        window.removeEventListener('touchmove', onPointerMove);
-        window.removeEventListener('touchend', onPointerUp);
-        window.removeEventListener('mousemove', onPointerMove);
-        window.removeEventListener('mouseup', onPointerUp);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('touchmove', onMove);
+        window.removeEventListener('touchend', onUp);
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
       };
 
-      const getY = (e) => {
-        if (e.touches && e.touches.length) return e.touches[0].clientY;
-        if (e.changedTouches && e.changedTouches.length) return e.changedTouches[0].clientY;
-        return e.clientY ?? 0;
-        };
+      const getY=(e)=> e.touches?.[0]?.clientY ?? e.changedTouches?.[0]?.clientY ?? e.clientY ?? 0;
 
-      handle.addEventListener('mousedown', onPointerDown);
-      handle.addEventListener('touchstart', onPointerDown, { passive: false });
-      handle.addEventListener('pointerdown', onPointerDown);
+      handle.addEventListener('pointerdown', onDown);
+      handle.addEventListener('touchstart', onDown, {passive:false});
+      handle.addEventListener('mousedown', onDown);
     }
 
-    // helper: insert text at cursor in a textarea
-    function insertTextAtCursorTextarea(ta, text) {
-      const start = ta.selectionStart ?? ta.value.length;
-      const end = ta.selectionEnd ?? ta.value.length;
-      const before = ta.value.slice(0, start);
-      const after = ta.value.slice(end);
+    /* helper: insert text at cursor in textarea */
+    function insertTextAtCursorTextarea(ta, text){
+      const start=ta.selectionStart ?? ta.value.length, end=ta.selectionEnd ?? ta.value.length;
+      const before=ta.value.slice(0,start), after=ta.value.slice(end);
       ta.value = before + text + after;
-      const pos = before.length + text.length;
-      ta.selectionStart = ta.selectionEnd = pos;
+      const pos = (before + text).length; ta.selectionStart = ta.selectionEnd = pos;
     }
 
-    /* -------- Drawing (existing) -------- */
-    const drawings = document.getElementById('drawings');
-    const pad = document.getElementById('pad');
-    const ctx = pad.getContext('2d');
-    const toggleDraw = document.getElementById('toggleDraw');
-    let drawing = false, drawActive = false, dirty = false;
-    let lastX = 0, lastY = 0, dpr = 1;
+    /* -------- Drawing (unchanged) -------- */
+    const drawings=document.getElementById('drawings');
+    const pad=document.getElementById('pad');
+    const ctx=pad.getContext('2d');
+    const toggleDraw=document.getElementById('toggleDraw');
+    let drawing=false, drawActive=false, dirty=false;
+    let lastX=0, lastY=0, dpr=1;
 
-    function sizeCanvas() {
-      const rect = pad.getBoundingClientRect();
-      dpr = window.devicePixelRatio || 1;
-      ctx.setTransform(1,0,0,1,0,0);
-      pad.width = Math.max(1, Math.floor(rect.width * dpr));
-      pad.height = Math.max(1, Math.floor(rect.height * dpr));
-      ctx.scale(dpr, dpr);
-      ctx.clearRect(0,0, rect.width, rect.height);
-      dirty = false;
-    }
-    function startDraw(x, y) { drawing = true; lastX = x; lastY = y; }
-    function moveDraw(x, y) {
-      if (!drawing) return;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#111';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-      lastX = x; lastY = y; dirty = true;
-    }
-    function endDraw() { drawing = false; }
-    function getPoint(e) {
-      const rect = pad.getBoundingClientRect();
-      if (e.touches && e.touches.length) {
-        const t = e.touches[0];
-        return { x: t.clientX - rect.left, y: t.clientY - rect.top };
-      }
-      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    }
-    function getVerticalContentBounds() {
-      const w = pad.width, h = pad.height;
-      if (!dirty || w === 0 || h === 0) return null;
-      try {
-        const data = ctx.getImageData(0,0,w,h).data;
-        let topFound = false, bottomFound = false, top = 0, bottom = h - 1;
-        for (let y = 0; y < h; y++) {
-          const row = y * w * 4;
-          for (let x = 0; x < w; x++) {
-            if (data[row + x*4 + 3] !== 0) { top = y; topFound = true; break; }
-          }
-          if (topFound) break;
-        }
-        if (!topFound) return null;
-        for (let y = h - 1; y >= 0; y--) {
-          const row = y * w * 4;
-          for (let x = 0; x < w; x++) {
-            if (data[row + x*4 + 3] !== 0) { bottom = y; bottomFound = true; break; }
-          }
-          if (bottomFound) break;
-        }
-        return { top, bottom };
-      } catch { return null; }
-    }
-    function saveDrawingIfAny() {
-      if (!dirty) return;
-      const w = pad.width, h = pad.height;
-      const bounds = getVerticalContentBounds();
-      let sy = 0, sh = h;
-      const cssDpr = window.devicePixelRatio || 1;
-      const margin = Math.round(cssDpr * 2);
-      if (bounds) {
-        sy = Math.max(0, bounds.top - margin);
-        const btm = Math.min(h - 1, bounds.bottom + margin);
-        sh = Math.max(1, btm - sy + 1);
-      }
-      const off = document.createElement('canvas');
-      off.width = w;
-      off.height = sh;
-      const offCtx = off.getContext('2d');
-      offCtx.drawImage(pad, 0, sy, w, sh, 0, 0, w, sh);
-      const img = new Image();
-      img.src = off.toDataURL('image/png');
-      drawings.appendChild(img);
-      const rect = pad.getBoundingClientRect();
-      ctx.clearRect(0,0, rect.width, rect.height);
-      dirty = false;
-      board.focus();
-    }
+    function sizeCanvas(){ const rect=pad.getBoundingClientRect(); dpr=window.devicePixelRatio||1; ctx.setTransform(1,0,0,1,0,0); pad.width=Math.max(1, Math.floor(rect.width*dpr)); pad.height=Math.max(1, Math.floor(rect.height*dpr)); ctx.scale(dpr,dpr); ctx.clearRect(0,0, rect.width, rect.height); dirty=false; }
+    function startDraw(x,y){ drawing=true; lastX=x; lastY=y; }
+    function moveDraw(x,y){ if(!drawing) return; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#111'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(x,y); ctx.stroke(); lastX=x; lastY=y; dirty=true; }
+    function endDraw(){ drawing=false; }
+    function getPoint(e){ const rect=pad.getBoundingClientRect(); if(e.touches&&e.touches.length){ const t=e.touches[0]; return {x:t.clientX-rect.left, y:t.clientY-rect.top}; } return {x:e.clientX-rect.left, y:e.clientY-rect.top}; }
+    function getVerticalContentBounds(){ const w=pad.width, h=pad.height; if(!dirty||!w||!h) return null; try{ const data=ctx.getImageData(0,0,w,h).data; let topFound=false, bottomFound=false, top=0, bottom=h-1; for(let y=0;y<h;y++){ const row=y*w*4; for(let x=0;x<w;x++){ if(data[row+x*4+3]!==0){ top=y; topFound=true; break; } } if(topFound) break; } if(!topFound) return null; for(let y=h-1;y>=0;y--){ const row=y*w*4; for(let x=0;x<w;x++){ if(data[row+x*4+3]!==0){ bottom=y; bottomFound=true; break; } } if(bottomFound) break; } return {top,bottom}; }catch{ return null; } }
+    function saveDrawingIfAny(){ if(!dirty) return; const w=pad.width,h=pad.height; const b=getVerticalContentBounds(); let sy=0,sh=h; const cssDpr=window.devicePixelRatio||1; const margin=Math.round(cssDpr*2); if(b){ sy=Math.max(0,b.top-margin); const bt=Math.min(h-1,b.bottom+margin); sh=Math.max(1, bt-sy+1); } const off=document.createElement('canvas'); off.width=w; off.height=sh; const offCtx=off.getContext('2d'); offCtx.drawImage(pad,0,sy,w,sh,0,0,w,sh); const img=new Image(); img.src=off.toDataURL('image/png'); drawings.appendChild(img); const rect=pad.getBoundingClientRect(); ctx.clearRect(0,0, rect.width, rect.height); dirty=false; board.focus(); }
 
-    toggleDraw.addEventListener('click', () => {
-      // Save whatever is there first
-      saveDrawingIfAny();
-      drawActive = !drawActive;
-      toggleDraw.textContent = drawActive ? 'Draw: On' : 'Draw: Off';
-      toggleDraw.setAttribute('aria-pressed', String(drawActive));
-      document.body.classList.toggle('drawing-active', drawActive);
-      if (drawActive) {
-        board.blur();
-        sizeCanvas();
-      } else {
-        board.focus();
-      }
-    });
+    toggleDraw.addEventListener('click', ()=>{ saveDrawingIfAny(); drawActive=!drawActive; toggleDraw.textContent = drawActive ? 'Draw: On' : 'Draw: Off'; toggleDraw.setAttribute('aria-pressed', String(drawActive)); document.body.classList.toggle('drawing-active', drawActive); if(drawActive){ board.blur(); sizeCanvas(); } else { board.focus(); } });
 
-    pad.addEventListener('touchstart', (e) => { if(!drawActive) return; e.preventDefault(); const p=getPoint(e); startDraw(p.x, p.y); });
-    pad.addEventListener('touchmove',  (e) => { if(!drawActive) return; e.preventDefault(); const p=getPoint(e); moveDraw(p.x, p.y); });
-    pad.addEventListener('touchend',   (e) => { if(!drawActive) return; e.preventDefault(); endDraw(); });
-    pad.addEventListener('mousedown', (e) => { if(!drawActive) return; const p=getPoint(e); startDraw(p.x, p.y); });
-    pad.addEventListener('mousemove', (e) => { if(!drawActive) return; const p=getPoint(e); moveDraw(p.x, p.y); });
+    pad.addEventListener('touchstart',(e)=>{ if(!drawActive) return; e.preventDefault(); const p=getPoint(e); startDraw(p.x,p.y); });
+    pad.addEventListener('touchmove',(e)=>{ if(!drawActive) return; e.preventDefault(); const p=getPoint(e); moveDraw(p.x,p.y); });
+    pad.addEventListener('touchend',(e)=>{ if(!drawActive) return; e.preventDefault(); endDraw(); });
+    pad.addEventListener('mousedown',(e)=>{ if(!drawActive) return; const p=getPoint(e); startDraw(p.x,p.y); });
+    pad.addEventListener('mousemove',(e)=>{ if(!drawActive) return; const p=getPoint(e); moveDraw(p.x,p.y); });
     pad.addEventListener('mouseup', endDraw);
     pad.addEventListener('mouseleave', endDraw);
     window.addEventListener('resize', sizeCanvas);
