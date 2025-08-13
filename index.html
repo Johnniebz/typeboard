@@ -113,6 +113,7 @@
     .row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
     .row input[type="text"], .row textarea { flex: 1; padding: 10px 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
     .row textarea { min-height: 96px; font-size: 15px; line-height: 1.4; }
+
     .drag-placeholder { height: 58px; border: 2px dashed #cfcfcf; border-radius: 12px; margin: 8px 0; }
 
     /* Notes Manager (unchanged) */
@@ -148,6 +149,8 @@
     <div class="header">
       <div class="bar">
         <div style="display:flex; gap:8px;">
+          <!-- Chime button inserted BEFORE the font-size buttons -->
+          <button class="btn btn-large" id="chime" type="button" aria-label="Play chime">🔔</button>
           <button class="btn btn-large" id="bigger" type="button">A+</button>
           <button class="btn btn-large" id="smaller" type="button">A−</button>
           <button class="btn btn-large" id="toggleDraw" type="button" aria-pressed="false">Draw: Off</button>
@@ -792,6 +795,66 @@
     pad.addEventListener('mouseup', endDraw);
     pad.addEventListener('mouseleave', endDraw);
     window.addEventListener('resize', sizeCanvas);
+
+    /* ===============================
+       CHIME — gentle double bell
+       (added without changing any existing code)
+    =============================== */
+    const chime = document.getElementById('chime');
+    let chimeCtx; // created on first use
+
+    function playGentleChimeTwice() {
+      if (!chimeCtx) chimeCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = chimeCtx.currentTime;
+
+      // Soft overall volume
+      const master = chimeCtx.createGain();
+      master.gain.value = 0.15;
+      master.connect(chimeCtx.destination);
+
+      // first chime now, second after a short pause
+      bell(now, master);
+      bell(now + 0.45, master);
+    }
+
+    function bell(startTime, outputNode) {
+      // three soft oscillators for a pleasant bell-like chime
+      const o1 = chimeCtx.createOscillator();
+      const o2 = chimeCtx.createOscillator();
+      const o3 = chimeCtx.createOscillator();
+
+      o1.type = 'sine';     o1.frequency.setValueAtTime(880, startTime);     // A5
+      o2.type = 'sine';     o2.frequency.setValueAtTime(1760, startTime);    // gentle harmonic
+      o2.detune.setValueAtTime(6, startTime);                                // tiny shimmer
+      o3.type = 'triangle'; o3.frequency.setValueAtTime(440, startTime);     // body
+
+      const g = chimeCtx.createGain();
+      // gentle envelope (fast attack, smooth decay)
+      g.gain.setValueAtTime(0.0001, startTime);
+      g.gain.exponentialRampToValueAtTime(0.9, startTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.9);
+
+      // tame highs a touch to avoid harshness
+      const filter = chimeCtx.createBiquadFilter();
+      filter.type = 'highshelf';
+      filter.frequency.setValueAtTime(3000, startTime);
+      filter.gain.setValueAtTime(-2, startTime);
+
+      o1.connect(g); o2.connect(g); o3.connect(g);
+      g.connect(filter); filter.connect(outputNode);
+
+      o1.start(startTime); o2.start(startTime); o3.start(startTime);
+      const stopTime = startTime + 1.2;
+      o1.stop(stopTime); o2.stop(stopTime); o3.stop(stopTime);
+    }
+
+    if (chime) {
+      chime.addEventListener('click', () => {
+        // Needed on iOS/Safari sometimes
+        if (chimeCtx && chimeCtx.state === 'suspended') chimeCtx.resume();
+        playGentleChimeTwice();
+      });
+    }
   </script>
 </body>
 </html>
