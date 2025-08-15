@@ -6,57 +6,54 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Typeboard — Quick Phrases</title>
-  <link rel="stylesheet" href="styles.css">
+  <!-- IMPORTANT: relative path for GitHub Pages project sites -->
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="wrap">
     <div class="header">
       <div class="bar">
-        <div style="display:flex; gap:8px;">
+        <div class="left-tools">
           <button class="btn btn-large" id="chime" type="button" aria-label="Play chime">🔔</button>
-          <button class="btn btn-large" id="bigger" type="button">A+</button>
-          <button class="btn btn-large" id="smaller" type="button">A−</button>
+          <button class="btn btn-large" id="bigger" type="button" title="Increase text size">A+</button>
+          <button class="btn btn-large" id="smaller" type="button" title="Decrease text size">A−</button>
           <button class="btn btn-large" id="toggleDraw" type="button" aria-pressed="false">Draw: Off</button>
         </div>
 
-        <div style="display:flex; gap:10px; align-items:center;">
+        <div class="right-tools">
           <!-- Translator controls -->
           <button class="btn btn-large" id="translateBtn" type="button" title="Translate text">🌐</button>
-          <div class="translator-controls">
-            <select id="langTo" class="lang-picker" title="Translate to">
-              <option value="en">English</option>
-              <option value="es" selected>Español</option>
-              <option value="fr">Français</option>
-              <option value="de">Deutsch</option>
-              <option value="it">Italiano</option>
-              <option value="pt">Português</option>
-              <option value="nl">Nederlands</option>
-              <option value="pl">Polski</option>
-              <option value="sv">Svenska</option>
-              <option value="da">Dansk</option>
-              <option value="fi">Suomi</option>
-              <option value="cs">Čeština</option>
-              <option value="ro">Română</option>
-              <option value="ru">Русский</option>
-              <option value="uk">Українська</option>
-              <option value="tr">Türkçe</option>
-              <option value="ar">العربية</option>
-              <option value="he">עברית</option>
-              <option value="hi">हिन्दी</option>
-              <option value="vi">Tiếng Việt</option>
-              <option value="zh">中文</option>
-              <option value="ja">日本語</option>
-              <option value="ko">한국어</option>
-            </select>
-          </div>
+          <select id="langTo" class="lang-picker" title="Translate to">
+            <option value="en">English</option>
+            <option value="es" selected>Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="it">Italiano</option>
+            <option value="pt">Português</option>
+            <option value="nl">Nederlands</option>
+            <option value="pl">Polski</option>
+            <option value="sv">Svenska</option>
+            <option value="da">Dansk</option>
+            <option value="fi">Suomi</option>
+            <option value="cs">Čeština</option>
+            <option value="ro">Română</option>
+            <option value="ru">Русский</option>
+            <option value="uk">Українська</option>
+            <option value="tr">Türkçe</option>
+            <option value="ar">العربية</option>
+            <option value="he">עברית</option>
+            <option value="hi">हिन्दी</option>
+            <option value="vi">Tiếng Việt</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+          </select>
 
           <!-- Notes controls -->
-          <div class="notes-controls">
-            <select id="notesPicker" class="notes-picker"><option value="">Saved ▾</option></select>
-            <button class="btn btn-large" id="manageNotes" type="button">Notes</button>
-            <button class="btn btn-large" id="saveNote" type="button">💾</button>
-            <button class="btn btn-clear" id="clear" type="button">CLEAR</button>
-          </div>
+          <select id="notesPicker" class="notes-picker"><option value="">Saved ▾</option></select>
+          <button class="btn btn-large" id="manageNotes" type="button" title="Manage notes">Notes</button>
+          <button class="btn btn-large" id="saveNote" type="button" title="Save current text">💾</button>
+          <button class="btn btn-clear" id="clear" type="button" title="Clear text">CLEAR</button>
         </div>
       </div>
 
@@ -105,6 +102,7 @@
     </div>
   </dialog>
 
-  <script type="module" src="js/main.js"></script>
+  <!-- IMPORTANT: relative, type=module, with .js extensions in imports -->
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
