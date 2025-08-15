@@ -4,12 +4,12 @@ import { initDrawing } from './drawing.js';
 import { initChime } from './chime.js';
 import { initTranslator } from './translator.js';
 
-/* ===== Grab elements once ===== */
 const els = {
   board:        document.getElementById('board'),
   clearBtn:     document.getElementById('clear'),
   bigger:       document.getElementById('bigger'),
   smaller:      document.getElementById('smaller'),
+  toggleDraw:   document.getElementById('toggleDraw'),
   sectionsBar:  document.getElementById('sectionsBar'),
   phrasesWrap:  document.getElementById('phrasesWrap'),
   phrasesBar:   document.getElementById('phrasesBar'),
@@ -27,134 +27,89 @@ const els = {
   notesSave:    document.getElementById('notesSave'),
   notesPicker:  document.getElementById('notesPicker'),
   manageNotes:  document.getElementById('manageNotes'),
+  saveNote:     document.getElementById('saveNote'),
 
-  drawings:     document.getElementById('drawings'),
-  pad:          document.getElementById('pad'),
-  toggleDraw:   document.getElementById('toggleDraw'),
-  chimeBtn:     document.getElementById('chime'),
-
-  // NEW: translator
-  langTo:       document.getElementById('langTo'),
+  chime:        document.getElementById('chime'),
   translateBtn: document.getElementById('translateBtn'),
+  langTo:       document.getElementById('langTo'),
+
+  pad:          document.getElementById('pad'),
+  drawings:     document.getElementById('drawings'),
 };
 
-/* ===== Init feature modules ===== */
-const phrases = initPhrases({
-  sectionsBar: els.sectionsBar,
-  phrasesWrap: els.phrasesWrap,
-  phrasesBar:  els.phrasesBar,
-  editBtn:     els.editBtn,
-  dlg:         els.phrasesDlg,
-  list:        els.sectionsList,
-  addBtn:      els.addSection,
-  cancelBtn:   els.phrasesCancel,
-  saveBtn:     els.phrasesSave,
-  board:       els.board,
+const storageKeys = {
+  fontSize: 'tb:fontSize',
+  text:     'tb:text',
+};
+
+// ===== Text area persistence =====
+els.board.value = localStorage.getItem(storageKeys.text) || '';
+els.board.addEventListener('input', () => {
+  localStorage.setItem(storageKeys.text, els.board.value);
 });
 
-const notes = initNotes({
-  dlg:        els.notesDlg,
-  list:       els.notesList,
-  addBtn:     els.addNote,
-  cancelBtn:  els.notesCancel,
-  saveBtn:    els.notesSave,
-  picker:     els.notesPicker,
-  manageBtn:  els.manageNotes,
-  board:      els.board,
-});
+// ===== Font size controls =====
+const defaultFont = 18;
+const savedFont = parseInt(localStorage.getItem(storageKeys.fontSize) || defaultFont, 10);
+setFontSize(savedFont);
 
-const drawing = initDrawing({
-  pad:        els.pad,
-  drawings:   els.drawings,
-  toggleBtn:  els.toggleDraw,
-  board:      els.board,
-});
+els.bigger.addEventListener('click', () => bumpFont(2));
+els.smaller.addEventListener('click', () => bumpFont(-2));
 
-initChime(els.chimeBtn);
-
-// NEW: Translator init
-initTranslator({
-  board: els.board,
-  langTo: els.langTo,
-  button: els.translateBtn,
-});
-
-/* ===== App shell: load / clear / fonts / shortcuts ===== */
-function getSize() {
-  const s = window.getComputedStyle(els.board).fontSize;
-  return parseFloat(s || '28');
+function bumpFont(delta){
+  const now = Math.max(12, Math.min(48, (parseInt(getComputedStyle(els.board).fontSize, 10) || defaultFont) + delta));
+  setFontSize(now);
 }
 
-function sizeUp()  { els.board.style.fontSize = Math.min(getSize() + 4, 72) + 'px'; els.board.focus(); }
-function sizeDown(){ els.board.style.fontSize = Math.max(getSize() - 4, 14) + 'px'; els.board.focus(); }
+function setFontSize(px){
+  els.board.style.fontSize = px + 'px';
+  localStorage.setItem(storageKeys.fontSize, String(px));
+}
 
-function clearAll() {
+// ===== Clear button =====
+els.clearBtn.addEventListener('click', () => {
+  if (els.board.value.trim() && !confirm('Clear all text?')) return;
   els.board.value = '';
-  els.drawings.innerHTML = '';
-  drawing.clearCanvas();
-  els.board.focus();
-}
-
-els.bigger.addEventListener('click', sizeUp);
-els.smaller.addEventListener('click', sizeDown);
-els.clearBtn.addEventListener('click', clearAll);
-
-document.addEventListener('keydown', (e) => {
-  if ((e.metaKey || e.ctrlKey) && (e.key === 'Backspace' || e.key === 'Delete')) {
-    e.preventDefault();
-    clearAll();
-  }
+  localStorage.removeItem(storageKeys.text);
 });
 
-/* ===== Initial render ===== */
-window.addEventListener('load', () => {
-  phrases.render();
-  notes.renderPicker();
-  els.board.focus();
-  drawing.resize();
+// ===== Init modules =====
+const phrasesAPI = initPhrases({ els });
+phrasesAPI.render(); // initial render
+
+const notesAPI = initNotes({ els, onLoadToBoard: (text) => {
+  els.board.value = text;
+  els.board.dispatchEvent(new Event('input'));
+}});
+
+const drawingAPI = initDrawing({ els });
+
+initChime({ button: els.chime });
+
+initTranslator({
+  button: els.translateBtn,
+  select: els.langTo,
+  getText: () => els.board.value,
+  setText: (txt) => { els.board.value = txt; els.board.dispatchEvent(new Event('input')); }
 });
 
-/** 
-
-function detectLang(text) {
-  // Very simple detection — matches what we used for translation fallback
-  if (/[ぁ-ゟ゠-ヿ一-龯]/.test(text)) return 'ja';
-  if (/[\u3131-\u318E\uAC00-\uD7A3]/.test(text)) return 'ko';
-  if (/[\u4E00-\u9FFF]/.test(text)) return 'zh';
-  if (/[А-Яа-яЁё]/.test(text)) return 'ru';
-  if (/[Α-Ωα-ω]/.test(text)) return 'el';
-  if (/[א-ת]/.test(text)) return 'he';
-  if (/[ء-ي]/.test(text)) return 'ar';
-  // Default guess: English if mostly ASCII, else Spanish
-  const asciiRatio = text.replace(/[^\x00-\x7F]/g, '').length / text.length;
-  return asciiRatio > 0.8 ? 'en' : 'es';
-}
-
-document.getElementById('speakBtn').addEventListener('click', () => {
-  const text = document.getElementById('board').value.trim();
-  if (!text) return;
-
-  const langCode = detectLang(text);
-  const synth = window.speechSynthesis;
-
-  // Cancel any current speech
-  synth.cancel();
-
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = langCode;
-
-  // Try to match a voice for the detected lang
-  const voices = synth.getVoices();
-  const match = voices.find(v => v.lang.toLowerCase().startsWith(langCode));
-  if (match) utter.voice = match;
-
-  synth.speak(utter);
+// ===== Draw toggle =====
+els.toggleDraw.addEventListener('click', () => {
+  const on = drawingAPI.toggle();
+  els.toggleDraw.setAttribute('aria-pressed', String(on));
+  els.toggleDraw.textContent = on ? 'Draw: On' : 'Draw: Off';
 });
 
-// Safari sometimes needs voices loaded first
-if (speechSynthesis.onvoiceschanged !== undefined) {
-  speechSynthesis.onvoiceschanged = () => {};
+// Resize canvas to area on load + resize
+function fitCanvas(){
+  const rect = els.drawings.getBoundingClientRect();
+  els.pad.width = Math.floor(rect.width);
+  els.pad.height = Math.floor(rect.height);
+  drawingAPI.syncSize();
 }
-   */
+window.addEventListener('resize', fitCanvas, { passive: true });
+window.addEventListener('orientationchange', fitCanvas, { passive: true });
+fitCanvas();
 
-window.addEventListener('resize', drawing.resize);
+// Expose tiny helpers for debugging from console
+window.Typeboard = { phrasesAPI, notesAPI, drawingAPI };
