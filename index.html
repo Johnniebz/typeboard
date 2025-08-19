@@ -9,41 +9,8 @@
   <style>
     :root { --pad: 10px; }
     html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #ffffff; color: #111; }
-   
-    /* Prefer dynamic viewport height on iOS to avoid jump when bars collapse */
-.wrap { height: 100dvh; display: flex; flex-direction: column; }
-
-/* Fall back to svh if dvh is not supported */
-@supports not (height: 100dvh) {
-  .wrap { height: 100svh; }
-}
-
-/* Small-screen/iPhone adjustments */
-@media (max-width: 430px) {
-  .bar {
-    gap: 6px;
-    flex-wrap: wrap; /* allow stacking */
-  }
-  .btn { 
-    padding: 8px 10px; 
-    font-size: 16px; 
-    border-radius: 9px;
-  }
-  .btn-large { font-size: 16px; }
-  .notes-controls { 
-    width: 100%; 
-    gap: 6px; 
-    flex-wrap: wrap; 
-    justify-content: flex-end;
-  }
-  .notes-picker {
-    width: min(55vw, 180px); /* shrink on iPhone */
-  }
-  textarea { 
-    font-size: 24px; /* slightly smaller default on small screens */
-  }
-}
-
+    .wrap { height: 100svh; display: flex; flex-direction: column; }
+    .area { flex: 1; overflow-y: auto; padding: 8px; position: relative; -webkit-overflow-scrolling: touch; }
 
     /* Sticky header (bar + quickbar) */
     .header { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #eee; }
@@ -711,15 +678,7 @@
     /* ===============================
        CLEAR / FONT SIZE / LOAD
     =============================== */
- window.addEventListener('load', ()=>{ 
-  renderSectionsBar();
-  renderPhrasesBar();
-  renderNotesPicker();
-  board.focus();
-  board.selectionStart = board.selectionEnd = board.value.length; // put caret at end
-  sizeCanvas();
-});
-
+    window.addEventListener('load', ()=>{ renderSectionsBar(); renderPhrasesBar(); renderNotesPicker(); board.focus(); sizeCanvas(); });
 
     clearBtn.addEventListener('click', ()=>{ board.value=''; drawings.innerHTML=''; const rect=pad.getBoundingClientRect(); ctx.clearRect(0,0,rect.width,rect.height); dirty=false; board.focus(); });
 
@@ -828,44 +787,14 @@
       if(drawActive){ board.blur(); sizeCanvas(); } else { board.focus(); }
     });
 
-   pad.addEventListener('touchstart', (e) => {
-  if (!drawActive) return;
-  e.preventDefault();
-  const p = getPoint(e);
-  startDraw(p.x, p.y);
-}, { passive: false });
-
-pad.addEventListener('touchmove', (e) => {
-  if (!drawActive) return;
-  e.preventDefault();
-  const p = getPoint(e);
-  moveDraw(p.x, p.y);
-}, { passive: false });
-
-pad.addEventListener('touchend', (e) => {
-  if (!drawActive) return;
-  e.preventDefault();
-  endDraw();
-}, { passive: false });
-
-// (Optional but recommended) handle interrupted touches
-pad.addEventListener('touchcancel', (e) => {
-  if (!drawActive) return;
-  e.preventDefault();
-  endDraw();
-}, { passive: false });
-
+    pad.addEventListener('touchstart',(e)=>{ if(!drawActive) return; e.preventDefault(); const p=getPoint(e); startDraw(p.x,p.y); });
+    pad.addEventListener('touchmove',(e)=>{ if(!drawActive) return; e.preventDefault(); const p=getPoint(e); moveDraw(p.x,p.y); });
+    pad.addEventListener('touchend',(e)=>{ if(!drawActive) return; e.preventDefault(); endDraw(); });
     pad.addEventListener('mousedown',(e)=>{ if(!drawActive) return; const p=getPoint(e); startDraw(p.x,p.y); });
     pad.addEventListener('mousemove',(e)=>{ if(!drawActive) return; const p=getPoint(e); moveDraw(p.x,p.y); });
     pad.addEventListener('mouseup', endDraw);
     pad.addEventListener('mouseleave', endDraw);
     window.addEventListener('resize', sizeCanvas);
-
-    // Prevent page scroll while drawing on iOS
-document.addEventListener('touchmove', (e) => {
-  if (drawActive) e.preventDefault();
-}, { passive: false });
-
 
     /* ===============================
        CHIME — gentle double bell
