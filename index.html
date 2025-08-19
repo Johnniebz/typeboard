@@ -678,7 +678,15 @@
     /* ===============================
        CLEAR / FONT SIZE / LOAD
     =============================== */
-    window.addEventListener('load', ()=>{ renderSectionsBar(); renderPhrasesBar(); renderNotesPicker(); board.focus(); sizeCanvas(); });
+ window.addEventListener('load', ()=>{ 
+  renderSectionsBar();
+  renderPhrasesBar();
+  renderNotesPicker();
+  board.focus();
+  board.selectionStart = board.selectionEnd = board.value.length; // put caret at end
+  sizeCanvas();
+});
+
 
     clearBtn.addEventListener('click', ()=>{ board.value=''; drawings.innerHTML=''; const rect=pad.getBoundingClientRect(); ctx.clearRect(0,0,rect.width,rect.height); dirty=false; board.focus(); });
 
